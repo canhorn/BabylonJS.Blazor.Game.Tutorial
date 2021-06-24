@@ -3,6 +3,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client
     using System;
     using System.Net.Http;
     using System.Threading.Tasks;
+    using BlazorPro.BlazorSize;
     using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
     using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client
             builder.RootComponents.Add<App>("#app");
 
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+            // Setup Blazor Services
+            builder.Services.AddScoped<ResizeListener>();
 
             await builder.Build().RunAsync();
         }

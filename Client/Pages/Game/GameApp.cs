@@ -1,6 +1,7 @@
 namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using BABYLON;
     using BABYLON.GUI;
@@ -19,6 +20,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private GameState _state = GameState.Start;
         private Scene _gameScene;
         private Scene _cutScene;
+        private GameEnvironment _environment;
+        private IDictionary<string, Mesh> _assets;
+        private Player _player;
 
         public DebugLayer DebugLayer => _scene.debugLayer;
 
@@ -95,7 +99,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
         }
 
-        private Task SetupGame()
+        private async Task SetupGame()
         {
             var scene = new Scene(
                 _engine
@@ -103,8 +107,91 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _gameScene = scene;
 
             // Load Assets
+            var environment = new GameEnvironment(scene);
+            _environment = environment;
+            await _environment.Load();
 
-            return Task.CompletedTask;
+            // Load Character Assets
+            _assets = await LoadCharacterAssets(scene);
+        }
+
+        private Task<IDictionary<string, Mesh>> LoadCharacterAssets(
+            Scene scene
+        )
+        {
+            var outer = MeshBuilder.CreateBox("outer",
+                new
+                {
+                    width = 2,
+                    depth = 1,
+                    height = 3,
+                },
+                scene
+            );
+            outer.isVisible = false;
+            outer.isPickable = false;
+            outer.checkCollisions = true;
+
+            // Move the origin of the box collider to the bottom of the mesh, this will match the imported player mesh
+            outer.bakeTransformIntoVertices(
+                Matrix.Translation(0, 1.5m, 0)
+            );
+
+            outer.ellipsoid = new Vector3(1, 1.5m, 1);
+            outer.ellipsoidOffset = new Vector3(0, 1.5m, 0);
+
+            // Rotate player 180 to have back to camera
+            outer.rotationQuaternion = new Quaternion(0, 1, 0, 0);
+
+            var box = MeshBuilder.CreateBox(
+                "Small1",
+                new
+                {
+                    width = 0.5,
+                    depth = 0.5,
+                    height = 0.25,
+                    faceColors = new[]
+                    {
+                        new Color4(0, 0, 0, 1),
+                        new Color4(0, 0, 0, 1),
+                        new Color4(0, 0, 0, 1),
+                        new Color4(0, 0, 0, 1),
+                        new Color4(0, 0, 0, 1),
+                        new Color4(0, 0, 0, 1),
+                    }
+                },
+                scene
+            );
+            box.position.y = 1.5m;
+            box.position.z = 1;
+
+            var body = Mesh.CreateCylinder(
+                "body",
+                3,
+                2,
+                2,
+                0,
+                0,
+                scene
+            );
+            var bodyMaterial = new StandardMaterial(
+                "red",
+                scene
+            );
+            bodyMaterial.diffuseColor = new Color3(0.8m, 0.5m, 0.5m);
+            body.material = bodyMaterial;
+            body.isPickable = false;
+            body.bakeTransformIntoVertices(Matrix.Translation(0, 1.5m, 0));
+
+            box.parent = body;
+            body.parent = outer;
+
+            var meshMap = new Dictionary<string, Mesh>
+            {
+                ["mesh"] = outer,
+            };
+
+            return Task.FromResult<IDictionary<string, Mesh>>(meshMap);
         }
 
         #region Go To Start
@@ -282,20 +369,13 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 scene.detachControl(); //observables disabled
             });
 
-            //temporary scene objects
-            var light1 = new HemisphericLight(
-                "light1",
-                new Vector3(1, 1, 0),
-                scene
-            );
-            var sphere = MeshBuilder.CreateSphere(
-                "sphere",
-                new
-                {
-                    diameter = 1
-                },
-                scene
-            );
+            // Primitive Character and Settings
+            await InitializeGame(scene);
+
+            await scene.whenReadyAsync();
+            scene.getMeshByName(
+                "outer"
+            ).position = new Vector3(0, 3, 0);
 
             //get rid of start scene, switch to gamescene and change states
             _scene.dispose();
@@ -366,6 +446,46 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _scene.dispose();
             _scene = scene;
             _state = GameState.Lose;
+        }
+
+        private Task InitializeGame(Scene scene)
+        {
+            var light0 = new HemisphericLight(
+                "HemiLight",
+                new Vector3(0, 1, 0),
+                scene
+            );
+
+            var light = new PointLight(
+                "sparklight",
+                new Vector3(0, 0, 0),
+                scene
+            )
+            {
+                diffuse = new Color3(
+                    0.08627450980392157m,
+                    0.10980392156862745m,
+                    0.15294117647058825m
+                ),
+                intensity = 35,
+                radius = 1
+            };
+
+            var shadowGenerator = new ShadowGenerator(
+                1024,
+                light
+            )
+            {
+                darkness = 0.4m
+            };
+
+            _player = new Player(
+                _assets,
+                scene,
+                shadowGenerator
+            );
+
+            return Task.CompletedTask;
         }
     }
 }

@@ -12,5 +12,5 @@ This is a project I, Cody Merritt Anhorn, personally created to help with the ge
 
 ~~~ bash
 # Generated BabylonJS project interop with multiple sources.
-ehz-generate -c Scene -c Engine -c DebugLayer -c HemisphericLight -c PointLight -c ArcRotateCamera -c MeshBuilder -c StandardMaterial -c AdvancedDynamicTexture -c Button -a Blazor.BabylonJS.WASM -s https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/dist/babylon.d.ts -s https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/dist/gui/babylon.gui.d.ts
+ehz-generate -c Scene -c Engine -c DebugLayer -c HemisphericLight -c PointLight -c ArcRotateCamera -c UniversalCamera -c MeshBuilder -c StandardMaterial -c AdvancedDynamicTexture -c Button -a Blazor.BabylonJS.WASM -s https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/dist/babylon.d.ts -s https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/dist/gui/babylon.gui.d.ts
 ~~~

@@ -23,6 +23,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private GameEnvironment _environment;
         private IDictionary<string, Mesh> _assets;
         private Player _player;
+        private PlayerInput _input;
 
         public DebugLayer DebugLayer => _scene.debugLayer;
 
@@ -119,7 +120,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             Scene scene
         )
         {
-            var outer = MeshBuilder.CreateBox("outer",
+            var outer = MeshBuilder.CreateBox(
+                "outer",
                 new
                 {
                     width = 2,
@@ -313,7 +315,6 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             _engine.hideLoadingUI();
 
-
             // Start Loading and Setup the Game
             await SetupGame();
         }
@@ -322,25 +323,16 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         {
             _scene.detachControl();
             var scene = _gameScene;
+
+            // a color that fit the overall color scheme better
             scene.clearColor = new Color4(
                 0.01568627450980392m,
                 0.01568627450980392m,
                 0.20392156862745098m,
                 1
-            ); // a color that fit the overall color scheme better
-            var camera = new ArcRotateCamera(
-                "Camera",
-                (decimal)Math.PI / 2,
-                (decimal)Math.PI / 2,
-                radius: 2,
-                Vector3.Zero(),
-                scene
             );
-            scene.activeCamera = camera;
-            camera.setTarget(Vector3.Zero());
-            camera.attachControl(true);
 
-            //--GUI--
+            // --GUI--
             var playerUI = AdvancedDynamicTexture.CreateFullscreenUI(
                 name: "UI",
                 scene: scene
@@ -369,6 +361,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 scene.detachControl(); //observables disabled
             });
 
+
+            // --INPUT--
+            _input = new PlayerInput(scene);
+
             // Primitive Character and Settings
             await InitializeGame(scene);
 
@@ -378,17 +374,19 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             ).position = new Vector3(0, 3, 0);
 
             //get rid of start scene, switch to gamescene and change states
+            _engine.hideLoadingUI();
             _scene.dispose();
             _state = GameState.Game;
             _scene = scene;
-            _engine.hideLoadingUI();
 
             //the game is ready, attach control back
-            _scene.attachControl(
+            scene.attachControl(
                 true,
                 true,
                 true
             );
+            // We use this to fix the ActionManager
+            _canvas.ResetControl();
         }
 
         private async Task GoToLose()
@@ -482,8 +480,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _player = new Player(
                 _assets,
                 scene,
-                shadowGenerator
+                shadowGenerator,
+                _input
             );
+            _player.ActivatePlayerCamera();
 
             return Task.CompletedTask;
         }

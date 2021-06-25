@@ -20,5 +20,35 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.HTML
         {
             ___guid = entity.___guid;
         }
+
+        /// <summary>
+        /// We use this to reset the focus state of the Canvas.
+        /// This helps with an issue with the ActionManager not capturing actions.
+        /// </summary>
+        public void ResetControl()
+        {
+            blur();
+            focus();
+        }
+
+        public void blur()
+        {
+            EventHorizonBlazorInterop.Func<CachedEntity>(
+                new object[]
+                {
+                    new string[] { this.___guid, "blur" }
+                }
+            );
+        }
+
+        public void focus()
+        {
+            EventHorizonBlazorInterop.Func<CachedEntity>(
+                new object[]
+                {
+                    new string[] { this.___guid, "focus" }
+                }
+            );
+        }
     }
 }

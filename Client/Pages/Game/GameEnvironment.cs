@@ -1,4 +1,4 @@
-﻿namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
+namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 {
     using System.Threading.Tasks;
     using BABYLON;

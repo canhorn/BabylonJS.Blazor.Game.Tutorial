@@ -7,12 +7,14 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     using BABYLON;
     using EventHorizon.Blazor.Interop;
     using EventHorizon.Blazor.Interop.Callbacks;
+    using EventHorizon.Blazor.Interop.ResultCallbacks;
 
     [JsonConverter(typeof(CachedEntityConverter<Player>))]
     public class Player : TransformNode
     {
         private static readonly Vector3 ORIGINAL_TILT = new(0.5934119456780721m, 0, 0);
         private static readonly decimal PLAYER_SPEED = 0.45m;
+        private static readonly decimal PLAYER_OFFSET = 2;
         private static readonly decimal GRAVITY = -2.8m;
         private static readonly decimal JUMP_FORCE = 0.8m;
 
@@ -116,7 +118,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         {
             var raycastFloorPosition = new Vector3(
                 _mesh.position.x + offsetX,
-                _mesh.position.y + 0.5m,
+                _mesh.position.y - PLAYER_OFFSET,
                 _mesh.position.z + offsetZ
             );
             var ray = new Ray(
@@ -127,12 +129,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             var pick = _scene.pickWithRay(
                 ray,
-                new ActionCallback<AbstractMesh>(
-                    mesh => Task.FromResult(
-                        mesh.isPickable && mesh.isEnabled()
-                    )
+                new ActionResultCallback<AbstractMesh, bool>(
+                    mesh => mesh.isPickable && mesh.isEnabled()
                 )
             );
+
             if (pick.hit)
             {
                 return pick.pickedPoint;
@@ -162,7 +163,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             if (_gravity.y < -JUMP_FORCE)
             {
-                _gravity.y = 0;
+                _gravity.y = -JUMP_FORCE;
             }
             _mesh.moveWithCollisions(_moveDirection.add(_gravity));
 
@@ -182,7 +183,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private void UpdateCamera()
         {
-            var centerPlayer = _mesh.position.y + 2;
+            var centerPlayer = _mesh.position.y + PLAYER_OFFSET;
 
             _cameraRoot.position = Vector3.Lerp(
                 _cameraRoot.position,

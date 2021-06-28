@@ -34,7 +34,6 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     new EventHorizon.Blazor.Interop.Callbacks.ActionCallback<ActionEvent>(
                         args =>
                         {
-                            System.Console.WriteLine("hi");
                             var key = GetKeyFromSourceEvent(args.sourceEvent);
                             var type = GetTypeFromSourceEvent(args.sourceEvent);
                             _inputMap[key] = type == "keydown";

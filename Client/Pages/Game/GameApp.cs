@@ -450,13 +450,14 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         {
             var light0 = new HemisphericLight(
                 "HemiLight",
-                new Vector3(0, 1, 0),
+                new Vector3(0, 100, 0),
                 scene
             );
+            light0.intensity = 0.8m;
 
             var light = new PointLight(
                 "sparklight",
-                new Vector3(0, 0, 0),
+                new Vector3(0, 10, 0),
                 scene
             )
             {
@@ -465,7 +466,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     0.10980392156862745m,
                     0.15294117647058825m
                 ),
-                intensity = 35,
+                intensity = 0.2m,
                 radius = 1
             };
 

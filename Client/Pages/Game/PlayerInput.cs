@@ -14,6 +14,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         public decimal Vertical { get; set; }
         public decimal HorizontalAxis { get; set; }
         public decimal VerticalAxis { get; set; }
+        public bool Dashing { get; set; }
+        public bool JumpKeyDown { get; set; }
 
         public PlayerInput(
             Scene scene
@@ -27,6 +29,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 ["ArrowDown"] = false,
                 ["ArrowLeft"] = false,
                 ["ArrowRight"] = false,
+                ["Shift"] = false,
+                [" "] = false,
             };
             scene.actionManager.registerAction(
                 new ExecuteCodeAction(
@@ -97,6 +101,24 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             {
                 Horizontal = 0;
                 HorizontalAxis = 0;
+            }
+
+            if (_inputMap["Shift"])
+            {
+                Dashing = true;
+            }
+            else
+            {
+                Dashing = false;
+            }
+
+            if (_inputMap[" "])
+            {
+                JumpKeyDown = true;
+            }
+            else
+            {
+                JumpKeyDown = false;
             }
         }
 

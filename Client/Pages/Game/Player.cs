@@ -14,9 +14,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     {
         private static readonly Vector3 ORIGINAL_TILT = new(0.5934119456780721m, 0, 0);
         private static readonly decimal PLAYER_SPEED = 0.45m;
-        private static readonly decimal PLAYER_OFFSET = 2;
+        private static readonly decimal PLAYER_OFFSET = 0.5m;
         private static readonly decimal GRAVITY = -2.8m;
         private static readonly decimal JUMP_FORCE = 0.8m;
+        private static readonly decimal DASH_FACTOR = 2.5m;
+        private static readonly int DASH_TIME = 10;
 
         private readonly Scene _scene;
         private readonly Mesh _mesh;
@@ -33,6 +35,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private decimal _horizontal;
         private decimal _vertical;
         private decimal _inputAmount;
+        private int _jumpCount;
+        private bool _dashPressed;
+        private bool _canDash;
+        private int _dashTime;
 
         public Player(
             IDictionary<string, Mesh> assets,
@@ -75,6 +81,31 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _horizontal = _input.Horizontal;
             _vertical = _input.Vertical;
 
+            // Dashing
+            if (_input.Dashing
+                && !_dashPressed
+                && _canDash
+                && !_grounded
+            )
+            {
+                // We have started a dash, do not allow another
+                _canDash = false;
+                // Start the dash sequence
+                _dashPressed = true;
+            }
+
+            var dashFactor = 1.0m;
+            if (_dashPressed)
+            {
+                dashFactor = DASH_FACTOR;
+                if (_dashTime > DASH_TIME)
+                {
+                    _dashTime = 0;
+                    _dashPressed = false;
+                }
+                _dashTime++;
+            }
+
             // --MOVEMENTS BASED ON CAMERA--
             var foward = _cameraRoot.forward;
             var right = _cameraRoot.right;
@@ -84,7 +115,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             correctedHorizontal = correctedHorizontal.add(correctedVertical);
             var move = correctedHorizontal;
 
-            _moveDirection = new Vector3(move.normalize().x, 0, move.normalize().z);
+            _moveDirection = new Vector3(move.normalize().x * dashFactor, 0, move.normalize().z * dashFactor);
 
             var inputMag = Math.Abs(_horizontal) + Math.Abs(_vertical);
             if (inputMag < 0)
@@ -144,8 +175,15 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private bool IsGrounded()
         {
-            var floorRaycast = FloorRaycast(0, 0, 0.6m);
-            if (floorRaycast.y != 0)
+            var floorRaycast = FloorRaycast(
+                0,
+                0,
+                0.6m
+            );
+            if (Vector3AreEqual(
+                floorRaycast,
+                Vector3.Zero()
+            ))
             {
                 return false;
             }
@@ -153,12 +191,108 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             return true;
         }
 
+        private bool CheckSlope()
+        {
+            var predicate = new ActionResultCallback<AbstractMesh, bool>(
+                mesh => mesh.isPickable 
+                    && mesh.isEnabled()
+                    && mesh.name.Contains("stair")
+            );
+
+            var pick = SlopeRaycastFrom(
+                predicate,
+                _mesh.position.x,
+                _mesh.position.z + 0.25m
+            );
+            var pick2 = SlopeRaycastFrom(
+                predicate,
+                _mesh.position.x,
+                _mesh.position.z - 0.25m
+            );
+            var pick3 = SlopeRaycastFrom(
+                predicate,
+                _mesh.position.x + 0.25m,
+                _mesh.position.z
+            );
+            var pick4 = SlopeRaycastFrom(
+                predicate,
+                _mesh.position.x - 0.25m,
+                _mesh.position.z
+            );
+
+            if (pick.hit)
+            {
+                return true;
+            }
+            else if (pick2.hit)
+            {
+                return true;
+            }
+            else if (pick3.hit)
+            {
+                return true;
+            }
+            else if (pick4.hit)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool Vector3AreEqual(
+            Vector3 first,
+            Vector3 second
+        )
+        {
+
+            return first.x == second.x
+                && first.y == second.y
+                && first.z == second.z;
+        }
+
+        private PickingInfo SlopeRaycastFrom(
+            ActionResultCallback<AbstractMesh, bool> predicate,
+            decimal x,
+            decimal z
+        )
+        {
+            var raycast = new Vector3(
+                x,
+                _mesh.position.y + PLAYER_OFFSET,
+                z
+            );
+            var ray = new Ray(
+                raycast,
+                Vector3.Up().scale(-1),
+                1.5m
+            );
+            return _scene.pickWithRay(
+                ray,
+                predicate
+            );
+        }
+
         private void UpdateGroundDetection()
         {
             if (!IsGrounded())
             {
-                _gravity = _gravity.addInPlace(Vector3.Up().scale(_deltaTime * GRAVITY));
-                _grounded = false;
+                if (CheckSlope()
+                    && _gravity.y <= 0)
+                {
+                    _gravity.y = 0;
+                    _jumpCount = 1;
+                    _grounded = true;
+                }
+                else
+                {
+                    _gravity = _gravity.addInPlace(
+                        Vector3.Up().scale(
+                            _deltaTime * GRAVITY
+                        )
+                    );
+                    _grounded = false;
+                }
             }
 
             if (_gravity.y < -JUMP_FORCE)
@@ -172,6 +306,22 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 _gravity.y = 0;
                 _grounded = true;
                 _lastGroundPosition.copyFrom(_mesh.position);
+
+                // Jumping
+                _jumpCount = 1;
+
+                // Dashing
+                _canDash = true;
+                _dashTime = 0;
+                _dashPressed = false;
+            }
+
+            // Jump Detected
+            if (_input.JumpKeyDown
+                && _jumpCount > 0)
+            {
+                _gravity.y = JUMP_FORCE;
+                _jumpCount--;
             }
         }
 

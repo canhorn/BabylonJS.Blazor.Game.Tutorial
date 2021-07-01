@@ -7,6 +7,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     using BABYLON.GUI;
     using BabylonJS.Blazor.Game.Tutorial.Client.HTML;
     using EventHorizon.Blazor.Interop.Callbacks;
+    using Microsoft.AspNetCore.Components.Routing;
     using Scene = BabylonJSExtensions.DebugLayerScene;
 
     public class GameApp : IDisposable
@@ -116,7 +117,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _assets = await LoadCharacterAssets(scene);
         }
 
-        private Task<IDictionary<string, Mesh>> LoadCharacterAssets(
+        private async Task<IDictionary<string, Mesh>> LoadCharacterAssets(
             Scene scene
         )
         {
@@ -145,55 +146,28 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             // Rotate player 180 to have back to camera
             outer.rotationQuaternion = new Quaternion(0, 1, 0, 0);
 
-            var box = MeshBuilder.CreateBox(
-                "Small1",
-                new
-                {
-                    width = 0.5,
-                    depth = 0.5,
-                    height = 0.25,
-                    faceColors = new[]
-                    {
-                        new Color4(0, 0, 0, 1),
-                        new Color4(0, 0, 0, 1),
-                        new Color4(0, 0, 0, 1),
-                        new Color4(0, 0, 0, 1),
-                        new Color4(0, 0, 0, 1),
-                        new Color4(0, 0, 0, 1),
-                    }
-                },
+            var result = await SceneLoader.ImportMeshAsync(
+                null,
+                "./models/",
+                "player.glb",
                 scene
             );
-            box.position.y = 1.5m;
-            box.position.z = 1;
 
-            var body = Mesh.CreateCylinder(
-                "body",
-                3,
-                2,
-                2,
-                0,
-                0,
-                scene
-            );
-            var bodyMaterial = new StandardMaterial(
-                "red",
-                scene
-            );
-            bodyMaterial.diffuseColor = new Color3(0.8m, 0.5m, 0.5m);
-            body.material = bodyMaterial;
-            body.isPickable = false;
-            body.bakeTransformIntoVertices(Matrix.Translation(0, 1.5m, 0));
-
-            box.parent = body;
+            var root = result.meshes[0];
+            var body = root;
             body.parent = outer;
+            body.isPickable = false;
+            foreach (var mesh in body.getChildMeshes())
+            {
+                mesh.isPickable = false;
+            }
 
             var meshMap = new Dictionary<string, Mesh>
             {
                 ["mesh"] = outer,
             };
 
-            return Task.FromResult<IDictionary<string, Mesh>>(meshMap);
+            return meshMap;
         }
 
         #region Go To Start
@@ -268,9 +242,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _cutScene = new Scene(
                 _engine
             );
+
+
             var camera = new FreeCamera(
                 "camera1",
-                position: new Vector3(
+                new Vector3(
                     0,
                     0,
                     0
@@ -317,6 +293,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             // Start Loading and Setup the Game
             await SetupGame();
+
+            await GoToGame();
         }
 
         private async Task GoToGame()
@@ -371,7 +349,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             await scene.whenReadyAsync();
             scene.getMeshByName(
                 "outer"
-            ).position = new Vector3(0, 3, 0);
+            ).position = scene.getTransformNodeByID(
+                "startPosition"
+            ).getAbsolutePosition();
 
             //get rid of start scene, switch to gamescene and change states
             _engine.hideLoadingUI();

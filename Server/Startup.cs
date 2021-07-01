@@ -2,6 +2,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Server
 {
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.StaticFiles;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -41,7 +42,17 @@ namespace BabylonJS.Blazor.Game.Tutorial.Server
 
             app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
-            app.UseStaticFiles();
+            //app.UseStaticFiles();
+
+            var provider = new FileExtensionContentTypeProvider();
+            // Add new mappings
+            provider.Mappings[".fx"] = "application/fx";
+            provider.Mappings[".gltf"] = "model/vnd.gltf+json";
+            provider.Mappings[".glb"] = "application/octet-stream";
+            app.UseStaticFiles(new StaticFileOptions()
+            {
+                ContentTypeProvider = provider,
+            });
 
             app.UseRouting();
 

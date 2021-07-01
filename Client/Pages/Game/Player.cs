@@ -2,6 +2,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
     using BABYLON;
@@ -52,6 +53,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             _mesh = assets["mesh"];
             _mesh.parent = this;
+
+
+            _scene.getLightByName("sparklight").parent = _scene.getTransformNodeByName("Empty");
 
             shadowGenerator.addShadowCaster(assets["mesh"]);
 
@@ -159,10 +163,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
 
             var pick = _scene.pickWithRay(
-                ray,
-                new ActionResultCallback<AbstractMesh, bool>(
-                    mesh => mesh.isPickable && mesh.isEnabled()
-                )
+                ray
             );
 
             if (pick.hit)
@@ -193,29 +194,19 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private bool CheckSlope()
         {
-            var predicate = new ActionResultCallback<AbstractMesh, bool>(
-                mesh => mesh.isPickable 
-                    && mesh.isEnabled()
-                    && mesh.name.Contains("stair")
-            );
-
             var pick = SlopeRaycastFrom(
-                predicate,
                 _mesh.position.x,
                 _mesh.position.z + 0.25m
             );
             var pick2 = SlopeRaycastFrom(
-                predicate,
                 _mesh.position.x,
                 _mesh.position.z - 0.25m
             );
             var pick3 = SlopeRaycastFrom(
-                predicate,
                 _mesh.position.x + 0.25m,
                 _mesh.position.z
             );
             var pick4 = SlopeRaycastFrom(
-                predicate,
                 _mesh.position.x - 0.25m,
                 _mesh.position.z
             );
@@ -252,7 +243,6 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         }
 
         private PickingInfo SlopeRaycastFrom(
-            ActionResultCallback<AbstractMesh, bool> predicate,
             decimal x,
             decimal z
         )
@@ -268,8 +258,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 1.5m
             );
             return _scene.pickWithRay(
-                ray,
-                predicate
+                ray
             );
         }
 
@@ -368,7 +357,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             var camera = new UniversalCamera(
                 "cam",
-                new Vector3(0, 0, -30),
+                new Vector3(0, 0, -130),
                 _scene
             );
             _camera = camera;

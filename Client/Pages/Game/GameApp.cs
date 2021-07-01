@@ -466,6 +466,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
             _player.ActivatePlayerCamera();
 
+            // Setup lantern collision checks
+            _environment.CheckLanterns(
+                _player
+            );
+
             return Task.CompletedTask;
         }
     }

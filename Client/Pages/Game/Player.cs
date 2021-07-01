@@ -2,13 +2,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
     using BABYLON;
     using EventHorizon.Blazor.Interop;
     using EventHorizon.Blazor.Interop.Callbacks;
-    using EventHorizon.Blazor.Interop.ResultCallbacks;
 
     [JsonConverter(typeof(CachedEntityConverter<Player>))]
     public class Player : TransformNode
@@ -22,7 +20,6 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private static readonly int DASH_TIME = 10;
 
         private readonly Scene _scene;
-        private readonly Mesh _mesh;
         private TransformNode _cameraRoot;
         private TransformNode _yTilt;
         private UniversalCamera _camera;
@@ -41,6 +38,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private bool _canDash;
         private int _dashTime;
 
+        public Mesh Mesh { get; internal set; }
+        public bool SparkLit { get; internal set; }
+        public bool SparkRest { get; internal set; }
+        public int LanternsLit { get; internal set; }
+
         public Player(
             IDictionary<string, Mesh> assets,
             Scene scene,
@@ -51,8 +53,13 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _scene = scene;
             SetupPlayerCamera();
 
-            _mesh = assets["mesh"];
-            _mesh.parent = this;
+            Mesh = assets["mesh"];
+            Mesh.parent = this;
+
+            // --COLLISIONS--
+            Mesh.actionManager = new ActionManager(
+                _scene
+            );
 
 
             _scene.getLightByName("sparklight").parent = _scene.getTransformNodeByName("Empty");
@@ -146,15 +153,19 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             var angle = Math.Atan2((double)_input.HorizontalAxis, (double)_input.VerticalAxis);
             angle += (double)_cameraRoot.rotation.y;
             var targ = Quaternion.FromEulerAngles(0, (decimal)angle, 0);
-            _mesh.rotationQuaternion = Quaternion.Slerp(_mesh.rotationQuaternion, targ, 10 * _deltaTime);
+            Mesh.rotationQuaternion = Quaternion.Slerp(
+                Mesh.rotationQuaternion,
+                targ,
+                10 * _deltaTime
+            );
         }
 
         private Vector3 FloorRaycast(decimal offsetX, decimal offsetZ, decimal raycastLength)
         {
             var raycastFloorPosition = new Vector3(
-                _mesh.position.x + offsetX,
-                _mesh.position.y - PLAYER_OFFSET,
-                _mesh.position.z + offsetZ
+                Mesh.position.x + offsetX,
+                Mesh.position.y - PLAYER_OFFSET,
+                Mesh.position.z + offsetZ
             );
             var ray = new Ray(
                 raycastFloorPosition,
@@ -195,20 +206,20 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private bool CheckSlope()
         {
             var pick = SlopeRaycastFrom(
-                _mesh.position.x,
-                _mesh.position.z + 0.25m
+                Mesh.position.x,
+                Mesh.position.z + 0.25m
             );
             var pick2 = SlopeRaycastFrom(
-                _mesh.position.x,
-                _mesh.position.z - 0.25m
+                Mesh.position.x,
+                Mesh.position.z - 0.25m
             );
             var pick3 = SlopeRaycastFrom(
-                _mesh.position.x + 0.25m,
-                _mesh.position.z
+                Mesh.position.x + 0.25m,
+                Mesh.position.z
             );
             var pick4 = SlopeRaycastFrom(
-                _mesh.position.x - 0.25m,
-                _mesh.position.z
+                Mesh.position.x - 0.25m,
+                Mesh.position.z
             );
 
             if (pick.hit)
@@ -249,7 +260,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         {
             var raycast = new Vector3(
                 x,
-                _mesh.position.y + PLAYER_OFFSET,
+                Mesh.position.y + PLAYER_OFFSET,
                 z
             );
             var ray = new Ray(
@@ -288,13 +299,13 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             {
                 _gravity.y = -JUMP_FORCE;
             }
-            _mesh.moveWithCollisions(_moveDirection.add(_gravity));
+            Mesh.moveWithCollisions(_moveDirection.add(_gravity));
 
             if (IsGrounded())
             {
                 _gravity.y = 0;
                 _grounded = true;
-                _lastGroundPosition.copyFrom(_mesh.position);
+                _lastGroundPosition.copyFrom(Mesh.position);
 
                 // Jumping
                 _jumpCount = 1;
@@ -322,14 +333,14 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private void UpdateCamera()
         {
-            var centerPlayer = _mesh.position.y + PLAYER_OFFSET;
+            var centerPlayer = Mesh.position.y + PLAYER_OFFSET;
 
             _cameraRoot.position = Vector3.Lerp(
                 _cameraRoot.position,
                 new Vector3(
-                    _mesh.position.x,
+                    Mesh.position.x,
                     centerPlayer,
-                    _mesh.position.z
+                    Mesh.position.z
                 ),
                 0.4m
             );

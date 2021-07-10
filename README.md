@@ -23,9 +23,9 @@ ehz-generate -c Scene -c Engine -c DebugLayer -c HemisphericLight -c PointLight 
 
 # Licensing
 ## Art Assets
-- [models](https://github.com/capucat/hanabi/tree/master/public/models)
-- [sprites](https://github.com/capucat/hanabi/tree/master/public/sprites)
-- [texture](https://github.com/capucat/hanabi/blob/master/public/textures/litLantern.png)
+- [models](https://github.com/capucat/summers-festival/tree/master/models)
+- [sprites](https://github.com/capucat/summers-festival/tree/master/sprites)
+- [textures](https://github.com/capucat/summers-festival/tree/master/textures)
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.  
 Art by Bianca Guerrero (capucat)

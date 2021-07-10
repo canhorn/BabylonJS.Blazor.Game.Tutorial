@@ -46,6 +46,40 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             {
                 mesh.receiveShadows = true;
                 mesh.checkCollisions = true;
+
+                if (mesh.name == "ground")
+                {
+                    // dont check for collisions, 
+                    mesh.checkCollisions = false;
+                    // dont allow for raycasting to detect the ground
+                    mesh.isPickable = false;
+                }
+
+                // Areas that will use box collisions
+                if (mesh.name.Contains("stairs")
+                    || mesh.name == "cityentranceground"
+                    || mesh.name == "fishingground.001"
+                    || mesh.name.Contains("lilyflwr"))
+                {
+                    mesh.checkCollisions = false;
+                    mesh.isPickable = false;
+                }
+
+                // Collision Meshes
+                if (mesh.name.Contains("collision"))
+                {
+                    //mesh.isVisible = false;
+                    mesh.visibility = 0.0m;
+                    mesh.isPickable = true;
+                }
+
+                // Trigger meshes
+                if (mesh.name.Contains("Trigger"))
+                {
+                    mesh.isVisible = false;
+                    mesh.isPickable = false;
+                    mesh.checkCollisions = false;
+                }
             }
 
             // Original mesh is not visible
@@ -98,7 +132,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
             // Extract the actual lanterns mesh from teh root of the mesh that is imported
             var lantern = lanternResult.meshes[0].getChildren()[0];
-            lantern.parent = null;
+            //lantern.parent = null;
 
             return new(
                 result.meshes[0],

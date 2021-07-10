@@ -10,7 +10,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.BabylonJSExtensions
     {
         private DebugLayer __debugLayer;
 
-        public DebugLayerScene(Engine engine, SceneOptions options = null) 
+        public DebugLayerScene(Engine engine, SceneOptions options = null)
             : base(engine, options)
         {
         }
@@ -42,5 +42,24 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.BabylonJSExtensions
                 );
             }
         }
+    }
+
+    public static class TransformNodeExtensions
+    {
+        public static Vector3 forward(
+            this TransformNode node
+        ) => EventHorizonBlazorInterop.GetClass(
+            node.___guid,
+            "forward",
+            (entity) => new Vector3() { ___guid = entity.___guid }
+        );
+
+        public static Vector3 right(
+            this TransformNode node
+        ) => EventHorizonBlazorInterop.GetClass(
+            node.___guid,
+            "right",
+            (entity) => new Vector3() { ___guid = entity.___guid }
+        );
     }
 }

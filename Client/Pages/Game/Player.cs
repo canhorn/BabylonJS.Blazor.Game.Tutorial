@@ -5,6 +5,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
     using BABYLON;
+    using BabylonJS.Blazor.Game.Tutorial.Client.BabylonJSExtensions;
     using EventHorizon.Blazor.Interop;
     using EventHorizon.Blazor.Interop.Callbacks;
 
@@ -12,6 +13,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     public class Player : TransformNode
     {
         private static readonly Vector3 ORIGINAL_TILT = new(0.5934119456780721m, 0, 0);
+        private static readonly Vector3 DOWN_TILT = new Vector3(0.8290313946973066m, 0, 0);
         private static readonly decimal PLAYER_SPEED = 0.45m;
         private static readonly decimal PLAYER_OFFSET = 0.5m;
         private static readonly decimal GRAVITY = -2.8m;
@@ -42,6 +44,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         public bool SparkLit { get; internal set; }
         public bool SparkRest { get; internal set; }
         public int LanternsLit { get; internal set; }
+        public bool Win { get; internal set; }
 
         public Player(
             IDictionary<string, Mesh> assets,
@@ -61,6 +64,47 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 _scene
             );
 
+            // Platform Destination
+            Mesh.actionManager.registerAction(
+                new ExecuteCodeAction(
+                    new
+                    {
+                        trigger = ActionManager.OnIntersectionEnterTrigger,
+                        parameter = _scene.getMeshByName("destination"),
+                    },
+                    new ActionCallback<ActionEvent>(_ =>
+                    {
+                        if (LanternsLit >= 22)
+                        {
+                            Win = true;
+                            // tilt camera to look at where the fireworks will be displayed
+                            _yTilt.rotation = new Vector3(
+                                5.689773361501514m,
+                                0.23736477827122882m,
+                                0
+                            );
+                            _yTilt.position = new Vector3(0, 6, 0);
+                            _camera.position.y = 17;
+                        }
+                        return Task.CompletedTask;
+                    })
+                )
+            );
+            Mesh.actionManager.registerAction(
+                new ExecuteCodeAction(
+                    new
+                    {
+                        trigger = ActionManager.OnIntersectionEnterTrigger,
+                        parameter = _scene.getMeshByName("ground"),
+                    },
+                    new ActionCallback<ActionEvent>(_ =>
+                    {
+                        // need to use copy or else they will be both pointing at the same thing & update together
+                        Mesh.position.copyFrom(this._lastGroundPosition);
+                        return Task.CompletedTask;
+                    })
+                )
+            );
 
             _scene.getLightByName("sparklight").parent = _scene.getTransformNodeByName("Empty");
 
@@ -118,8 +162,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             }
 
             // --MOVEMENTS BASED ON CAMERA--
-            var foward = _cameraRoot.forward;
-            var right = _cameraRoot.right;
+            var foward = _cameraRoot.forward();
+            var right = _cameraRoot.right();
             var correctedVertical = foward.scale(_vertical);
             var correctedHorizontal = right.scale(_horizontal);
 
@@ -205,36 +249,31 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private bool CheckSlope()
         {
-            var pick = SlopeRaycastFrom(
+            if (SlopeRaycastFrom(
                 Mesh.position.x,
                 Mesh.position.z + 0.25m
-            );
-            var pick2 = SlopeRaycastFrom(
+            ).hit)
+            {
+                return true;
+            }
+            if (SlopeRaycastFrom(
                 Mesh.position.x,
                 Mesh.position.z - 0.25m
-            );
-            var pick3 = SlopeRaycastFrom(
+            ).hit)
+            {
+                return true;
+            }
+            if (SlopeRaycastFrom(
                 Mesh.position.x + 0.25m,
                 Mesh.position.z
-            );
-            var pick4 = SlopeRaycastFrom(
+            ).hit)
+            {
+                return true;
+            }
+            if (SlopeRaycastFrom(
                 Mesh.position.x - 0.25m,
                 Mesh.position.z
-            );
-
-            if (pick.hit)
-            {
-                return true;
-            }
-            else if (pick2.hit)
-            {
-                return true;
-            }
-            else if (pick3.hit)
-            {
-                return true;
-            }
-            else if (pick4.hit)
+            ).hit)
             {
                 return true;
             }
@@ -333,8 +372,81 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private void UpdateCamera()
         {
-            var centerPlayer = Mesh.position.y + PLAYER_OFFSET;
+            if (Mesh.intersectsMesh(
+                _scene.getMeshByName("cornerTrigger")
+            ))
+            {
+                if (_input.HorizontalAxis > 0)
+                {
+                    _cameraRoot.rotation = Vector3.Lerp(
+                        _cameraRoot.rotation,
+                        new Vector3(
+                            _cameraRoot.rotation.x,
+                            (decimal)Math.PI / 2,
+                            _cameraRoot.rotation.z
+                        ),
+                        0.4m
+                    );
+                }
+                else if (_input.HorizontalAxis < 0)
+                {
+                    _cameraRoot.rotation = Vector3.Lerp(
+                        _cameraRoot.rotation,
+                        new Vector3(
+                            _cameraRoot.rotation.x,
+                            (decimal)Math.PI,
+                            _cameraRoot.rotation.z
+                        ),
+                        0.4m
+                    );
+                }
+            }
+            //rotates the camera to point down at the player when they enter the area, and returns it back to normal when they exit
+            else if (Mesh.intersectsMesh(
+                _scene.getMeshByName("festivalTrigger")
+            ))
+            {
+                if (_input.VerticalAxis > 0)
+                {
+                    _yTilt.rotation = Vector3.Lerp(
+                        _yTilt.rotation,
+                        DOWN_TILT,
+                        0.4m
+                    );
+                }
+                else if (_input.VerticalAxis < 0)
+                {
+                    _yTilt.rotation = Vector3.Lerp(
+                        _yTilt.rotation,
+                        ORIGINAL_TILT,
+                        0.4m
+                    );
+                }
+            }
+            //once you've reached the destination area, return back to the original orientation, if they leave rotate it to the previous orientation
+            else if (Mesh.intersectsMesh(
+                _scene.getMeshByName("destinationTrigger")
+            ))
+            {
+                if (_input.VerticalAxis > 0)
+                {
+                    _yTilt.rotation = Vector3.Lerp(
+                        _yTilt.rotation,
+                        ORIGINAL_TILT,
+                        0.4m
+                    );
+                }
+                else if (_input.VerticalAxis < 0)
+                {
+                    _yTilt.rotation = Vector3.Lerp(
+                        _yTilt.rotation, 
+                        DOWN_TILT, 
+                        0.4m
+                    );
+                }
+            }
 
+            var centerPlayer = Mesh.position.y + PLAYER_OFFSET;
             _cameraRoot.position = Vector3.Lerp(
                 _cameraRoot.position,
                 new Vector3(

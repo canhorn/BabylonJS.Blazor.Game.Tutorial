@@ -3,11 +3,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using System.Timers;
     using BABYLON;
     using BABYLON.GUI;
     using BabylonJS.Blazor.Game.Tutorial.Client.HTML;
     using EventHorizon.Blazor.Interop.Callbacks;
-    using Microsoft.AspNetCore.Components.Routing;
     using Scene = BabylonJSExtensions.DebugLayerScene;
 
     public class GameApp : IDisposable
@@ -25,6 +25,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private IDictionary<string, Mesh> _assets;
         private Player _player;
         private PlayerInput _input;
+        private Hud _ui;
 
         public DebugLayer DebugLayer => _scene.debugLayer;
 
@@ -62,22 +63,33 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             await GoToStart();
 
             _engine.runRenderLoop(new ActionCallback(
-                () =>
+                async () =>
                 {
                     switch (_state)
                     {
                         case GameState.Start:
-                            return Task.Run(() => _scene.render(true, false));
+                            _scene.render(true, false);
+                            return;
                         case GameState.Game:
-                            return Task.Run(() => _scene.render(true, false));
+                            // once the timer 4 minutes, take us to the lose state
+                            if (_ui.Time >= TimeSpan.FromMinutes(4)
+                                && !_player.Win)
+                            {
+                                await GoToLose();
+                                _ui.StopTimer();
+                            }
+
+                            _scene.render(true, false);
+                            return;
                         case GameState.Lose:
-                            return Task.Run(() => _scene.render(true, false));
+                            _scene.render(true, false);
+                            return;
                         case GameState.CutScene:
-                            return Task.Run(() => _scene.render(true, false));
+                            _scene.render(true, false);
+                            return;
                         default:
                             break;
                     }
-                    return Task.CompletedTask;
                 }
             ));
         }
@@ -235,6 +247,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private async Task GoToCutScene()
         {
+            var finishedLoading = false;
             _engine.displayLoadingUI();
 
             // Setup Scene
@@ -257,18 +270,209 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             camera.setTarget(Vector3.Zero());
             camera.attachControl(true);
 
-            // GUI
+            // --GUI--
             var cutScene = AdvancedDynamicTexture.CreateFullscreenUI(
                 name: "cutscene",
                 scene: _cutScene
             );
+            var transition = 0;
+            var canPlay = false;
+            var finishedAnimation = false;
+            var animationsLoaded = 0;
+            var animationPlaying = 1;
+            var dialogueTimer = new Timer(250);
+            var animationTimer = new Timer(250);
+            animationTimer.Stop();
+            var animation2Timer = new Timer(750);
+            animation2Timer.Stop();
+
+            _cutScene.onDisposeObservable.add((_, __) =>
+            {
+                dialogueTimer.Dispose();
+                animationTimer.Dispose();
+                animation2Timer.Dispose();
+                return Task.CompletedTask;
+            });
+
+            // Animations
+            var beginning_anim = new Image(
+                "sparkLife",
+                "./sprites/beginning_anim.png"
+            );
+            beginning_anim.stretch = Image.STRETCH_UNIFORM;
+            beginning_anim.cellId = 0;
+            beginning_anim.cellHeight = 480;
+            beginning_anim.cellWidth = 480;
+            beginning_anim.sourceWidth = 480;
+            beginning_anim.sourceHeight = 480;
+            cutScene.addControl(beginning_anim);
+            beginning_anim.onImageLoadedObservable.add((_, __) =>
+            {
+                animationsLoaded++;
+                return Task.CompletedTask;
+            });
+            var working_anim = new Image("sparkLife", "./sprites/working_anim.png");
+            working_anim.stretch = Image.STRETCH_UNIFORM;
+            working_anim.cellId = 0;
+            working_anim.cellHeight = 480;
+            working_anim.cellWidth = 480;
+            working_anim.sourceWidth = 480;
+            working_anim.sourceHeight = 480;
+            working_anim.isVisible = false;
+            cutScene.addControl(working_anim);
+            working_anim.onImageLoadedObservable.add((_, __) =>
+            {
+                animationsLoaded++;
+                return Task.CompletedTask;
+            });
+            var dropoff_anim = new Image("sparkLife", "./sprites/dropoff_anim.png");
+            dropoff_anim.stretch = Image.STRETCH_UNIFORM;
+            dropoff_anim.cellId = 0;
+            dropoff_anim.cellHeight = 480;
+            dropoff_anim.cellWidth = 480;
+            dropoff_anim.sourceWidth = 480;
+            dropoff_anim.sourceHeight = 480;
+            dropoff_anim.isVisible = false;
+            cutScene.addControl(dropoff_anim);
+            dropoff_anim.onImageLoadedObservable.add((_, __) =>
+            {
+                animationsLoaded++;
+                return Task.CompletedTask;
+            });
+            var leaving_anim = new Image("sparkLife", "./sprites/leaving_anim.png");
+            leaving_anim.stretch = Image.STRETCH_UNIFORM;
+            leaving_anim.cellId = 0;
+            leaving_anim.cellHeight = 480;
+            leaving_anim.cellWidth = 480;
+            leaving_anim.sourceWidth = 480;
+            leaving_anim.sourceHeight = 480;
+            leaving_anim.isVisible = false;
+            cutScene.addControl(leaving_anim);
+            leaving_anim.onImageLoadedObservable.add((_, __) =>
+            {
+                animationsLoaded++;
+                return Task.CompletedTask;
+            });
+            var watermelon_anim = new Image("sparkLife", "./sprites/watermelon_anim.png");
+            watermelon_anim.stretch = Image.STRETCH_UNIFORM;
+            watermelon_anim.cellId = 0;
+            watermelon_anim.cellHeight = 480;
+            watermelon_anim.cellWidth = 480;
+            watermelon_anim.sourceWidth = 480;
+            watermelon_anim.sourceHeight = 480;
+            watermelon_anim.isVisible = false;
+            cutScene.addControl(watermelon_anim);
+            watermelon_anim.onImageLoadedObservable.add((_, __) =>
+            {
+                animationsLoaded++;
+                return Task.CompletedTask;
+            });
+            var reading_anim = new Image("sparkLife", "./sprites/reading_anim.png");
+            reading_anim.stretch = Image.STRETCH_UNIFORM;
+            reading_anim.cellId = 0;
+            reading_anim.cellHeight = 480;
+            reading_anim.cellWidth = 480;
+            reading_anim.sourceWidth = 480;
+            reading_anim.sourceHeight = 480;
+            reading_anim.isVisible = false;
+            cutScene.addControl(reading_anim);
+            reading_anim.onImageLoadedObservable.add((_, __) =>
+            {
+                animationsLoaded++;
+                return Task.CompletedTask;
+            });
+
+            //Dialogue animations
+            var dialogueBg = new Image("sparkLife", "./sprites/bg_anim_text_dialogue.png");
+            dialogueBg.stretch = Image.STRETCH_UNIFORM;
+            dialogueBg.cellId = 0;
+            dialogueBg.cellHeight = 480;
+            dialogueBg.cellWidth = 480;
+            dialogueBg.sourceWidth = 480;
+            dialogueBg.sourceHeight = 480;
+            dialogueBg.horizontalAlignment = 0;
+            dialogueBg.verticalAlignment = 0;
+            dialogueBg.isVisible = false;
+            cutScene.addControl(dialogueBg);
+            dialogueBg.onImageLoadedObservable.add((_, __) =>
+            {
+                animationsLoaded++;
+                return Task.CompletedTask;
+            });
+
+            var dialogue = new Image("sparkLife", "./sprites/text_dialogue.png");
+            dialogue.stretch = Image.STRETCH_UNIFORM;
+            dialogue.cellId = 0;
+            dialogue.cellHeight = 480;
+            dialogue.cellWidth = 480;
+            dialogue.sourceWidth = 480;
+            dialogue.sourceHeight = 480;
+            dialogue.horizontalAlignment = 0;
+            dialogue.verticalAlignment = 0;
+            dialogue.isVisible = false;
+            cutScene.addControl(dialogue);
+            dialogue.onImageLoadedObservable.add((_, __) =>
+            {
+                animationsLoaded++;
+                return Task.CompletedTask;
+            });
+
+
+            // skip cutscene
+            var skipBtn = Button.CreateSimpleButton("skip", "SKIP");
+            skipBtn.fontFamily = "Viga";
+            skipBtn.width = "45px";
+            skipBtn.left = "-14px";
+            skipBtn.height = "40px";
+            skipBtn.color = "white";
+            skipBtn.top = "14px";
+            skipBtn.thickness = 0;
+            skipBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+            skipBtn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
+            cutScene.addControl(skipBtn);
+
+            skipBtn.onPointerDownObservable.add((_, __) =>
+            {
+                _cutScene.detachControl();
+                //clearInterval(animTimer);
+                //clearInterval(anim2Timer);
+                //clearInterval(dialogueTimer);
+                animationTimer.Dispose();
+                animation2Timer.Dispose();
+                dialogueTimer.Dispose();
+                _engine.displayLoadingUI();
+                canPlay = true;
+
+                return Task.CompletedTask;
+            });
+
+            // -- PLAYING ANIMATIONS --
+            _cutScene.onBeforeRenderObservable.add(async (_, __) =>
+            {
+                if (animationsLoaded == 8)
+                {
+                    _engine.hideLoadingUI();
+                    animationsLoaded = 0;
+
+                    animationTimer.Start();
+                    animation2Timer.Start();
+                }
+
+                if (finishedLoading
+                    && canPlay
+                )
+                {
+                    canPlay = false;
+                    await GoToGame();
+                }
+            });
 
             //--PROGRESS DIALOGUE--
-            var next = Button.CreateSimpleButton(
+            var next = Button.CreateImageOnlyButton(
                 "next",
-                "NEXT"
+                "./sprites/arrowBtn.png"
             );
-            next.color = "white";
+            next.rotation = (decimal)Math.PI / 2;
             next.thickness = 0;
             next.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
             next.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
@@ -276,12 +480,137 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             next.height = "64px";
             next.top = "-3%";
             next.left = "-12%";
+            next.isVisible = false;
             cutScene.addControl(next);
 
-            next.onPointerUpObservable.add(async (_, __) =>
+            next.onPointerUpObservable.add((_, __) =>
             {
-                await GoToGame();
+                if (transition == 8)
+                {
+                    // Once we reach the last dialogue frame, goToGame
+                    _cutScene.detachControl();
+                    // If the game hasn't loaded yet, we'll see a loading screen
+                    _engine.displayLoadingUI();
+                    transition = 0;
+                    canPlay = true;
+                }
+                else if (transition < 8)
+                {
+                    // 8 frames of dialogue
+                    transition++;
+                    dialogue.cellId++;
+                }
+
+                return Task.CompletedTask;
             });
+
+            // Looping animation for the dialogue background
+            dialogueTimer.Elapsed += (_, __) =>
+            {
+                if (finishedAnimation
+                    && dialogueBg.cellId < 3
+                )
+                {
+                    dialogueBg.cellId++;
+                }
+                else
+                {
+                    dialogueBg.cellId = 0;
+                }
+            };
+            // Keeps track of wich animation we are playing
+            animationTimer.Elapsed += (_, __) =>
+            {
+                switch (animationPlaying)
+                {
+                    case 1:
+                        if (beginning_anim.cellId == 9)
+                        {
+                            // Each animation could have a different number of frames
+                            animationPlaying++;
+                            // current animation hidden
+                            beginning_anim.isVisible = false;
+                            // show the next animation
+                            working_anim.isVisible = true;
+                        }
+                        else
+                        {
+                            beginning_anim.cellId++;
+                        }
+                        break;
+                    case 2:
+                        if (working_anim.cellId == 11)
+                        {
+                            animationPlaying++;
+                            working_anim.isVisible = false;
+                            dropoff_anim.isVisible = true;
+                        }
+                        else
+                        {
+                            working_anim.cellId++;
+                        }
+                        break;
+                    case 3:
+                        if (dropoff_anim.cellId == 11)
+                        {
+                            animationPlaying++;
+                            dropoff_anim.isVisible = false;
+                            leaving_anim.isVisible = true;
+                        }
+                        else
+                        {
+                            dropoff_anim.cellId++;
+                        }
+                        break;
+                    case 4:
+                        if (leaving_anim.cellId == 9)
+                        {
+                            animationPlaying++;
+                            leaving_anim.isVisible = false;
+                            watermelon_anim.isVisible = true;
+                        }
+                        else
+                        {
+                            leaving_anim.cellId++;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            };
+
+            animation2Timer.Elapsed += (_, __) =>
+            {
+                switch (animationPlaying)
+                {
+                    case 5:
+                        if (watermelon_anim.cellId == 8)
+                        {
+                            animationPlaying++;
+                            watermelon_anim.isVisible = false;
+                            reading_anim.isVisible = true;
+                        }
+                        else
+                        {
+                            watermelon_anim.cellId++;
+                        }
+                        break;
+                    case 6:
+                        if (reading_anim.cellId == 11)
+                        {
+                            reading_anim.isVisible = false;
+                            finishedAnimation = true;
+                            dialogueBg.isVisible = true;
+                            dialogue.isVisible = true;
+                            next.isVisible = true;
+                        }
+                        else
+                        {
+                            reading_anim.cellId++;
+                        }
+                        break;
+                }
+            };
 
             // Scene Finished Loading
             await _cutScene.whenReadyAsync();
@@ -293,8 +622,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             // Start Loading and Setup the Game
             await SetupGame();
-
-            await GoToGame();
+            finishedLoading = true;
         }
 
         private async Task GoToGame()
@@ -311,15 +639,12 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
 
             // --GUI--
-            var playerUI = AdvancedDynamicTexture.CreateFullscreenUI(
-                name: "UI",
-                scene: scene
-            );
-            playerUI.idealHeight = 720;
+            var ui = new Hud(scene);
+            _ui = ui;
             //dont detect any inputs from this ui while the game is loading
             scene.detachControl();
 
-            //create a simple button
+            //create a simple button -- For Testing
             var loseBtn = Button.CreateSimpleButton(
                 "lose",
                 "LOSE"
@@ -330,7 +655,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             loseBtn.top = "-14px";
             loseBtn.thickness = 0;
             loseBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
-            playerUI.addControl(loseBtn);
+            _ui.Root.addControl(loseBtn);
 
             //this handles interactions with the start button attached to the scene
             loseBtn.onPointerUpObservable.add(async (_, __) =>
@@ -346,18 +671,22 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             // Primitive Character and Settings
             await InitializeGame(scene);
 
+            // -- WHEN SCENE FINISHED LOADING --
             await scene.whenReadyAsync();
             scene.getMeshByName(
                 "outer"
             ).position = scene.getTransformNodeByID(
                 "startPosition"
             ).getAbsolutePosition();
+            // Setup the game timer and sparkler timer -- linked to the ui
+            _ui.StartTimer();
+            _ui.StartSparklerTimer();
 
             //get rid of start scene, switch to gamescene and change states
-            _engine.hideLoadingUI();
             _scene.dispose();
             _state = GameState.Game;
             _scene = scene;
+            _engine.hideLoadingUI();
 
             //the game is ready, attach control back
             scene.attachControl(
@@ -428,12 +757,12 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private Task InitializeGame(Scene scene)
         {
-            var light0 = new HemisphericLight(
-                "HemiLight",
-                new Vector3(0, 100, 0),
-                scene
-            );
-            light0.intensity = 0.8m;
+            //var light0 = new HemisphericLight(
+            //    "HemiLight",
+            //    new Vector3(0, 1, 0),
+            //    scene
+            //);
+            //light0.intensity = 0.8m;
 
             var light = new PointLight(
                 "sparklight",
@@ -452,7 +781,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             var shadowGenerator = new ShadowGenerator(
                 1024,
-                light
+                light,
+                true
             )
             {
                 darkness = 0.4m
@@ -470,6 +800,35 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _environment.CheckLanterns(
                 _player
             );
+
+            scene.onBeforeRenderObservable.add((_, __) =>
+            {
+                // Reset the Sparkler Timer
+                if (_player.SparkReset)
+                {
+                    _ui.StartSparklerTimer();
+                    _player.SparkReset = false;
+
+                    _ui.UpdateLanternCount(
+                        _player.LanternsLit
+                    );
+                }
+                // Stop the sparkler timer after 20 seconds
+                else if (_ui.StopSpark
+                    && _player.SparkLit
+                )
+                {
+                    _ui.StopSparklerTimer();
+                    _player.SparkLit = false;
+                }
+                // When the game isn't paused, update the timer
+                if (!_ui.GamePaused)
+                {
+                    _ui.UpdateHub();
+                }
+
+                return Task.CompletedTask;
+            });
 
             return Task.CompletedTask;
         }

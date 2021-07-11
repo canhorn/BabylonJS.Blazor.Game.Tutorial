@@ -192,13 +192,13 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                                     lantern.SetEmissiveTexture();
 
                                     // reset the Sparkler 
-                                    player.SparkRest = true;
+                                    player.SparkReset = true;
                                     player.SparkLit = true;
                                 }
                                 // If the lantern is lit already, reset the Sparkler
                                 else if (lantern.IsLit)
                                 {
-                                    player.SparkRest = true;
+                                    player.SparkReset = true;
                                     player.SparkLit = true;
                                 }
 

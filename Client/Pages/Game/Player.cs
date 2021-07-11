@@ -42,8 +42,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         public Mesh Mesh { get; internal set; }
         public bool SparkLit { get; internal set; }
-        public bool SparkRest { get; internal set; }
-        public int LanternsLit { get; internal set; }
+        public bool SparkReset { get; internal set; }
+        public int LanternsLit { get; internal set; } = 1;
         public bool Win { get; internal set; }
 
         public Player(
@@ -480,7 +480,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             var camera = new UniversalCamera(
                 "cam",
-                new Vector3(0, 0, -130),
+                new Vector3(0, 0, -30),
                 _scene
             );
             _camera = camera;

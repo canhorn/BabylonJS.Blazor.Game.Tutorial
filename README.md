@@ -18,7 +18,7 @@ dotnet tool install -g EventHorizon.Blazor.TypeScript.Interop.Tool
 dotnet tool update -g EventHorizon.Blazor.TypeScript.Interop.Tool
 
 # Generated BabylonJS project interop with multiple sources.
-ehz-generate -c Scene -c Engine -c DebugLayer -c HemisphericLight -c PointLight -c ArcRotateCamera -c UniversalCamera -c PBRMetallicRoughnessMaterial -c MeshBuilder -c SceneLoader -c StandardMaterial -c ExecuteCodeAction -c AdvancedDynamicTexture -c Button -a Blazor.BabylonJS.WASM -s https://cdn.jsdelivr.net/gh/BabylonJS/Babylon.js@4.2.0/dist/babylon.d.ts -s https://cdn.jsdelivr.net/gh/BabylonJS/Babylon.js@4.2.0/dist/gui/babylon.gui.d.ts
+ehz-generate -c Scene -c Engine -c DebugLayer -c HemisphericLight -c PointLight -c ArcRotateCamera -c UniversalCamera -c PBRMetallicRoughnessMaterial -c MeshBuilder -c SceneLoader -c StandardMaterial -c ExecuteCodeAction -c AdvancedDynamicTexture -c Button -c StackPanel -a Blazor.BabylonJS.WASM -s https://cdn.jsdelivr.net/gh/BabylonJS/Babylon.js@4.2.0/dist/babylon.d.ts -s https://cdn.jsdelivr.net/gh/BabylonJS/Babylon.js@4.2.0/dist/gui/babylon.gui.d.ts
 ~~~
 
 # Licensing

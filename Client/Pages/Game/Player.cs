@@ -1,7 +1,6 @@
 namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 {
     using System;
-    using System.Collections.Generic;
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
     using BABYLON;
@@ -12,6 +11,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     [JsonConverter(typeof(CachedEntityConverter<Player>))]
     public class Player : TransformNode
     {
+        // Static/Constants
         private static readonly Vector3 ORIGINAL_TILT = new(0.5934119456780721m, 0, 0);
         private static readonly Vector3 DOWN_TILT = new Vector3(0.8290313946973066m, 0, 0);
         private static readonly decimal PLAYER_SPEED = 0.45m;
@@ -22,11 +22,26 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private static readonly int DASH_TIME = 10;
 
         private readonly Scene _scene;
+        private readonly PlayerInput _input;
+
+        // Camera
+        private UniversalCamera _camera;
         private TransformNode _cameraRoot;
         private TransformNode _yTilt;
-        private UniversalCamera _camera;
-        private PlayerInput _input;
 
+        // Animations 
+        private AnimationGroup _run;
+        private AnimationGroup _idle;
+        private AnimationGroup _jump;
+        private AnimationGroup _land;
+        private AnimationGroup _dash;
+        // Animation - Trackers
+        private AnimationGroup _currentAnimation;
+        private AnimationGroup _prevAnimation;
+        private bool _isFalling;
+        private bool _jumped;
+
+        // Movement
         private decimal _deltaTime;
         private Vector3 _moveDirection = Vector3.Zero();
         private Vector3 _gravity = Vector3.Zero();
@@ -35,19 +50,23 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private decimal _horizontal;
         private decimal _vertical;
         private decimal _inputAmount;
+        // Jumping
         private int _jumpCount;
+        // Dashing
         private bool _dashPressed;
         private bool _canDash;
         private int _dashTime;
 
+        // Player
         public Mesh Mesh { get; internal set; }
+        // Player - Public State
         public bool SparkLit { get; internal set; }
         public bool SparkReset { get; internal set; }
         public int LanternsLit { get; internal set; } = 1;
         public bool Win { get; internal set; }
 
         public Player(
-            IDictionary<string, Mesh> assets,
+            GameAssets assets,
             Scene scene,
             ShadowGenerator shadowGenerator,
             PlayerInput input
@@ -56,8 +75,15 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _scene = scene;
             SetupPlayerCamera();
 
-            Mesh = assets["mesh"];
+            Mesh = assets.Mesh;
             Mesh.parent = this;
+
+            // Anmiation Setup
+            _idle = assets.AnimationGroups[1];
+            _jump = assets.AnimationGroups[2];
+            _land = assets.AnimationGroups[3];
+            _run = assets.AnimationGroups[4];
+            _dash = assets.AnimationGroups[0];
 
             // --COLLISIONS--
             Mesh.actionManager = new ActionManager(
@@ -100,7 +126,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     new ActionCallback<ActionEvent>(_ =>
                     {
                         // need to use copy or else they will be both pointing at the same thing & update together
-                        Mesh.position.copyFrom(this._lastGroundPosition);
+                        Mesh.position.copyFrom(_lastGroundPosition);
                         return Task.CompletedTask;
                     })
                 )
@@ -108,7 +134,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             _scene.getLightByName("sparklight").parent = _scene.getTransformNodeByName("Empty");
 
-            shadowGenerator.addShadowCaster(assets["mesh"]);
+            SetupAnimations();
+            shadowGenerator.addShadowCaster(Mesh);
 
             _input = input;
         }
@@ -126,6 +153,55 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             ));
 
             return _camera;
+        }
+
+        private void SetupAnimations()
+        {
+            _scene.stopAllAnimations();
+            _run.loopAnimation = true;
+            _idle.loopAnimation = true;
+
+            // Initiailze current and previous
+            _currentAnimation = _idle;
+            _prevAnimation = _land;
+        }
+
+        private void AnimatePlayer()
+        {
+            var isDirectionalMove = _input.InputMap["ArrowUp"]
+                || _input.InputMap["ArrowDown"]
+                || _input.InputMap["ArrowLeft"]
+                || _input.InputMap["ArrowRight"];
+            if (!_dashPressed
+                && !_isFalling
+                && !_jumped
+                && isDirectionalMove
+            )
+            {
+                _currentAnimation = _run;
+            }
+            else if (_jumped && !_isFalling && !_dashPressed)
+            {
+                _currentAnimation = _jump;
+            }
+            else if (!_isFalling && _grounded)
+            {
+                _currentAnimation = _idle;
+            }
+            else if (_isFalling)
+            {
+                _currentAnimation = this._land;
+            }
+
+            //Animations
+            if (_currentAnimation != null
+                && _prevAnimation != _currentAnimation
+            )
+            {
+                _prevAnimation.stop();
+                _currentAnimation.play(_currentAnimation.loopAnimation);
+                _prevAnimation = _currentAnimation;
+            }
         }
 
         private void UpdateFromControls()
@@ -147,16 +223,22 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 _canDash = false;
                 // Start the dash sequence
                 _dashPressed = true;
+
+                // Animations
+                _currentAnimation = _dash;
             }
 
             var dashFactor = 1.0m;
             if (_dashPressed)
             {
-                dashFactor = DASH_FACTOR;
                 if (_dashTime > DASH_TIME)
                 {
                     _dashTime = 0;
                     _dashPressed = false;
+                }
+                else
+                {
+                    dashFactor = DASH_FACTOR;
                 }
                 _dashTime++;
             }
@@ -334,10 +416,20 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 }
             }
 
+            // Limit the speed of gravity to the negative of the jump power
             if (_gravity.y < -JUMP_FORCE)
             {
                 _gravity.y = -JUMP_FORCE;
             }
+
+            // Cue falling animation once gravity starts pusing down
+            if (_gravity.y < 0
+                && _jumped
+            )
+            {
+                _isFalling = true;
+            }
+
             Mesh.moveWithCollisions(_moveDirection.add(_gravity));
 
             if (IsGrounded())
@@ -353,6 +445,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 _canDash = true;
                 _dashTime = 0;
                 _dashPressed = false;
+
+                // Jump and Falling animation flags
+                _jumped = false;
+                _isFalling = false;
             }
 
             // Jump Detected
@@ -361,6 +457,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             {
                 _gravity.y = JUMP_FORCE;
                 _jumpCount--;
+
+                // Jumping and Falling animation flags
+                _jumped = true;
+                _isFalling = false;
             }
         }
 
@@ -368,6 +468,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         {
             UpdateFromControls();
             UpdateGroundDetection();
+            AnimatePlayer();
         }
 
         private void UpdateCamera()
@@ -439,8 +540,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 else if (_input.VerticalAxis < 0)
                 {
                     _yTilt.rotation = Vector3.Lerp(
-                        _yTilt.rotation, 
-                        DOWN_TILT, 
+                        _yTilt.rotation,
+                        DOWN_TILT,
                         0.4m
                     );
                 }

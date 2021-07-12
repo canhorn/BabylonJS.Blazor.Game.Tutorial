@@ -82,6 +82,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 }
             }
 
+            // --LANTERNS--
             // Original mesh is not visible
             assets.Lantern.isVisible = false;
             // A transform node to hold all lanterns
@@ -92,12 +93,22 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
             for (int i = 0; i < 22; i++)
             {
+                // Mesh Cloning
                 var lanternInstance = assets.Lantern.clone(
-                    $"lantern{i}",
+                    $"lantern {i}",
                     lanternHolder
                 );
                 lanternInstance.isVisible = true;
                 lanternInstance.setParent(lanternHolder);
+
+                // Animation Cloning
+                var animationGroupClone = new AnimationGroup(
+                    "lanternAnimationGroup " + i
+                );
+                animationGroupClone.addTargetedAnimation(
+                    assets.AnimationGroup.targetedAnimations[0].animation,
+                    lanternInstance
+                );
 
                 // Create new Lantern
                 var newLantern = new Lantern(
@@ -112,6 +123,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     newLantern
                 );
             }
+
+            assets.Lantern.dispose();
+            assets.AnimationGroup.dispose();
         }
 
         private async Task<EnvSettingAsset> LoadAsset()
@@ -132,14 +146,32 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
             // Extract the actual lanterns mesh from teh root of the mesh that is imported
             var lantern = lanternResult.meshes[0].getChildren()[0];
-            //lantern.parent = null;
+            lantern.parent = null;
+            lanternResult.meshes[0].dispose();
+
+            // Animation Groups
+            var importedAnimations = lanternResult.animationGroups;
+            var animation = new List<Animation>
+            {
+                importedAnimations[0].targetedAnimations[0].animation
+            };
+            importedAnimations[0].dispose();
+            // Create new Animation Group
+            var animationGroup = new AnimationGroup(
+                "lanternAnimationGroup"
+            );
+            animationGroup.addTargetedAnimation(
+                animation[0],
+                result.meshes[1]
+            );
 
             return new(
                 result.meshes[0],
                 result.meshes[0].getChildMeshes(),
                 // Here we assign the lantern to a Mesh,
                 // This sets a new Mesh to delegate all of its functionaity to the instances of the lantern from above.
-                new Mesh(lantern)
+                new Mesh(lantern),
+                animationGroup
             );
         }
 
@@ -148,16 +180,19 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             public AbstractMesh Env { get; }
             public AbstractMesh[] AllMeshes { get; }
             public Mesh Lantern { get; }
+            public AnimationGroup AnimationGroup { get; }
 
             public EnvSettingAsset(
                 AbstractMesh env,
                 AbstractMesh[] allMeshes,
-                Mesh lantern
+                Mesh lantern,
+                AnimationGroup animationGroup
             )
             {
                 Env = env;
                 AllMeshes = allMeshes;
                 Lantern = lantern;
+                AnimationGroup = animationGroup;
             }
         }
 

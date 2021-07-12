@@ -22,7 +22,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private Scene _gameScene;
         private Scene _cutScene;
         private GameEnvironment _environment;
-        private IDictionary<string, Mesh> _assets;
+        private GameAssets _assets;
         private Player _player;
         private PlayerInput _input;
         private Hud _ui;
@@ -129,7 +129,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _assets = await LoadCharacterAssets(scene);
         }
 
-        private async Task<IDictionary<string, Mesh>> LoadCharacterAssets(
+        private async Task<GameAssets> LoadCharacterAssets(
             Scene scene
         )
         {
@@ -174,12 +174,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 mesh.isPickable = false;
             }
 
-            var meshMap = new Dictionary<string, Mesh>
+            return new GameAssets
             {
-                ["mesh"] = outer,
+                Mesh = outer,
+                AnimationGroups = result.animationGroups,
             };
-
-            return meshMap;
         }
 
         #region Go To Start

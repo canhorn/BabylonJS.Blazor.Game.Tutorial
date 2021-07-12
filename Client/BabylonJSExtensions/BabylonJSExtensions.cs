@@ -62,4 +62,19 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.BabylonJSExtensions
             (entity) => new Vector3() { ___guid = entity.___guid }
         );
     }
+
+    public static class SceneExtensions
+    {
+        public static void stopAllAnimations(
+            this Scene scene
+        )
+        {
+            EventHorizonBlazorInterop.Func<CachedEntity>(
+                new object[]
+                {
+                    new string[] { scene.___guid, "stopAllAnimations" },
+                }
+            );
+        }
+    }
 }

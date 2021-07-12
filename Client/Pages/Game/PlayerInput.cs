@@ -1,7 +1,6 @@
 namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 {
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
     using BABYLON;
     using EventHorizon.Blazor.Interop;
@@ -16,6 +15,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         public decimal VerticalAxis { get; set; }
         public bool Dashing { get; set; }
         public bool JumpKeyDown { get; set; }
+        public Dictionary<string, bool> InputMap => _inputMap;
 
         public PlayerInput(
             Scene scene

@@ -60,10 +60,12 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         // Player
         public Mesh Mesh { get; internal set; }
         // Player - Public State
-        public bool SparkLit { get; internal set; }
-        public bool SparkReset { get; internal set; }
         public int LanternsLit { get; internal set; } = 1;
         public bool Win { get; internal set; }
+        // Sparkler
+        public ParticleSystem Sparkler { get; private set; }
+        public bool SparkLit { get; internal set; }
+        public bool SparkReset { get; internal set; }
 
         public Player(
             GameAssets assets,
@@ -134,6 +136,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             _scene.getLightByName("sparklight").parent = _scene.getTransformNodeByName("Empty");
 
+            // Create the sparkler particle system
+            CreateSparkles();
             SetupAnimations();
             shadowGenerator.addShadowCaster(Mesh);
 
@@ -590,6 +594,79 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             camera.parent = _yTilt;
 
             _scene.activeCamera = camera;
+        }
+
+        private void CreateSparkles()
+        {
+            var sphere = Mesh.CreateSphere(
+                "sparkles",
+                4,
+                1,
+                _scene
+            );
+            sphere.position = new Vector3(0, 0, 0);
+            // Place particle system at the tip of the sparkler on the player mesh
+            sphere.parent = _scene.getTransformNodeByName(
+                "Empty"
+            );
+            sphere.isVisible = false;
+
+            var particleSystem = new ParticleSystem(
+                "sparkles",
+                1000,
+                _scene
+            );
+            particleSystem.particleTexture = new Texture(
+                _scene,
+                "textures/flwr.png"
+            );
+            particleSystem.emitter = sphere;
+            // Here we create a new proxy to the expected 'ParticleEmitterType'
+            particleSystem.particleEmitterType = new IParticleEmitterTypeCachedEntity(
+                new SphereParticleEmitter(0)
+            );
+
+            particleSystem.updateSpeed = 0.014m;
+            particleSystem.minAngularSpeed = 0;
+            particleSystem.maxAngularSpeed = 360;
+            particleSystem.minEmitPower = 1;
+            particleSystem.maxEmitPower = 3;
+
+            particleSystem.minSize = 0.5m;
+            particleSystem.maxSize = 2;
+            particleSystem.minScaleX = 0.5m;
+            particleSystem.minScaleY = 0.5m;
+            particleSystem.color1 = new Color4(
+                0.8m,
+                0.8549019607843137m,
+                1,
+                1
+            );
+            particleSystem.color2 = new Color4(
+                0.8509803921568627m,
+                0.7647058823529411m,
+                1,
+                1
+            );
+
+            particleSystem.addRampGradient(
+                0,
+                Color3.White()
+            );
+            particleSystem.addRampGradient(
+                1,
+                Color3.Black()
+            );
+            particleSystem.getRampGradients()[0].color = Color3.FromHexString("#BBC1FF");
+            particleSystem.getRampGradients()[1].color = Color3.FromHexString("#FFFFFF");
+            particleSystem.maxAngularSpeed = 0;
+            particleSystem.maxInitialRotation = 360;
+            particleSystem.minAngularSpeed = -10;
+            particleSystem.maxAngularSpeed = 10;
+
+            particleSystem.start();
+
+            Sparkler = particleSystem;
         }
     }
 }

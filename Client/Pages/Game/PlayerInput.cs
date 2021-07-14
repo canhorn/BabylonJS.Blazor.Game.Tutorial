@@ -8,6 +8,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     public class PlayerInput
     {
         private Dictionary<string, bool> _inputMap;
+        private readonly Hud _ui;
 
         public decimal Horizontal { get; set; }
         public decimal Vertical { get; set; }
@@ -18,9 +19,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         public Dictionary<string, bool> InputMap => _inputMap;
 
         public PlayerInput(
-            Scene scene
+            Scene scene,
+            Hud ui
         )
         {
+            _ui = ui;
             scene.actionManager = new ActionManager(scene);
 
             _inputMap = new Dictionary<string, bool>
@@ -71,12 +74,16 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private void UpdateFromKeyboard()
         {
-            if (_inputMap["ArrowUp"])
+            if (_inputMap["ArrowUp"]
+                && !_ui.GamePaused
+            )
             {
                 Vertical = Lerp(Vertical, 1, 0.2m);
                 VerticalAxis = 1;
             }
-            else if (_inputMap["ArrowDown"])
+            else if (_inputMap["ArrowDown"]
+                && !_ui.GamePaused
+            )
             {
                 Vertical = Lerp(Vertical, -1, 0.2m);
                 VerticalAxis = -1;
@@ -87,12 +94,16 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 VerticalAxis = 0;
             }
 
-            if (_inputMap["ArrowLeft"])
+            if (_inputMap["ArrowLeft"]
+                && !_ui.GamePaused
+            )
             {
                 Horizontal = Lerp(Horizontal, -1, 0.2m);
                 HorizontalAxis = -1;
             }
-            else if (_inputMap["ArrowRight"])
+            else if (_inputMap["ArrowRight"]
+                && !_ui.GamePaused
+            )
             {
                 Horizontal = Lerp(Horizontal, 1, 0.2m);
                 HorizontalAxis = 1;
@@ -103,7 +114,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 HorizontalAxis = 0;
             }
 
-            if (_inputMap["Shift"])
+            if (_inputMap["Shift"]
+                && !_ui.GamePaused
+            )
             {
                 Dashing = true;
             }
@@ -112,7 +125,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 Dashing = false;
             }
 
-            if (_inputMap[" "])
+            if (_inputMap[" "]
+                && !_ui.GamePaused
+            )
             {
                 JumpKeyDown = true;
             }

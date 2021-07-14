@@ -50,7 +50,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         // UI Elements
         public Button PauseButton { get; private set; }
-        public decimal FadeLevel { get; private set; }
+        public decimal FadeLevel { get; set; }
 
         public Hud(
             Scene scene
@@ -283,14 +283,22 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         /// <summary>
         /// Start/Restart Sparkler, handles setting the texture and animation frame
         /// </summary>
-        public void StartSparklerTimer()
+        public void StartSparklerTimer(
+            ParticleSystem sparkler
+        )
         {
             // Reset the sparkler timers and Animation Frames
             StopSpark = false;
             _sparklerLife.cellId = 0;
             _spark.cellId = 0;
 
-            _scene.getLightByName("sparklight").intensity = 60;
+            if (sparkler is not null)
+            {
+                sparkler.start();
+                _scene.getLightByName(
+                    "sparklight"
+                ).intensity = 35;
+            }
 
             _timer.Start();
 
@@ -300,10 +308,18 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         /// <summary>
         /// Stop the Sparkler, resets the texture.
         /// </summary>
-        public void StopSparklerTimer()
+        public void StopSparklerTimer(
+            ParticleSystem sparkler
+        )
         {
             StopSpark = true;
-            _scene.getLightByName("sparklight").intensity = 0;
+            if (sparkler is not null)
+            {
+                sparkler.stop();
+                _scene.getLightByName(
+                    "sparklight"
+                ).intensity = 0;
+            }
         }
         #endregion
 

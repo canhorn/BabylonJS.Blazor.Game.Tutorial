@@ -1,7 +1,6 @@
 namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using System.Timers;
     using BABYLON;
@@ -69,7 +68,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     {
                         case GameState.Start:
                             _scene.render(true, false);
-                            return;
+                            break;
                         case GameState.Game:
                             // once the timer 4 minutes, take us to the lose state
                             if (_ui.Time >= TimeSpan.FromMinutes(4)
@@ -79,14 +78,20 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                                 _ui.StopTimer();
                             }
 
+                            if (_ui.Quit)
+                            {
+                                await GoToStart();
+                                _ui.Quit = false;
+                            }
+
                             _scene.render(true, false);
-                            return;
+                            break;
                         case GameState.Lose:
                             _scene.render(true, false);
-                            return;
+                            break;
                         case GameState.CutScene:
                             _scene.render(true, false);
-                            return;
+                            break;
                         default:
                             break;
                     }
@@ -665,7 +670,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
 
             // --INPUT--
-            _input = new PlayerInput(scene);
+            _input = new PlayerInput(
+                scene,
+                _ui
+            );
 
             // Primitive Character and Settings
             await InitializeGame(scene);
@@ -679,7 +687,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             ).getAbsolutePosition();
             // Setup the game timer and sparkler timer -- linked to the ui
             _ui.StartTimer();
-            _ui.StartSparklerTimer();
+            _ui.StartSparklerTimer(_player.Sparkler);
 
             //get rid of start scene, switch to gamescene and change states
             _scene.dispose();
@@ -756,13 +764,6 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private Task InitializeGame(Scene scene)
         {
-            //var light0 = new HemisphericLight(
-            //    "HemiLight",
-            //    new Vector3(0, 1, 0),
-            //    scene
-            //);
-            //light0.intensity = 0.8m;
-
             var light = new PointLight(
                 "sparklight",
                 new Vector3(0, 10, 0),
@@ -800,26 +801,78 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 _player
             );
 
+            //--Transition post process--
+            scene.registerBeforeRender(new ActionCallback(() =>
+            {
+                if (_ui.Transition)
+                {
+                    _ui.FadeLevel -= 0.05m;
+
+                    // Once the fade transition has complete, switch scenes
+                    if (_ui.FadeLevel <= 0)
+                    {
+                        _ui.Quit = true;
+                        _ui.Transition = false;
+                    }
+                }
+
+                return Task.CompletedTask;
+            }));
+
+            // -- GAME LOOP --
             scene.onBeforeRenderObservable.add((_, __) =>
             {
                 // Reset the Sparkler Timer
                 if (_player.SparkReset)
                 {
-                    _ui.StartSparklerTimer();
+                    _ui.StartSparklerTimer(
+                        _player.Sparkler
+                    );
                     _player.SparkReset = false;
 
                     _ui.UpdateLanternCount(
                         _player.LanternsLit
                     );
                 }
+
                 // Stop the sparkler timer after 20 seconds
                 else if (_ui.StopSpark
                     && _player.SparkLit
                 )
                 {
-                    _ui.StopSparklerTimer();
+                    _ui.StopSparklerTimer(
+                        _player.Sparkler
+                    );
                     _player.SparkLit = false;
                 }
+
+                // If you have reached the destination and lit all the lanterns
+                if (_player.Win
+                    && _player.LanternsLit == 22
+                )
+                {
+                    // Stop the timer so that fireworks can play and player cant move around
+                    _ui.GamePaused = true;
+                    // Dont allow pause menu interation
+                    _ui.PauseButton.isHitTestVisible = false;
+
+                    // 10 seconds
+                    var i = 10;
+                    var timer = new Timer(1000);
+                    timer.Elapsed += (_, __) =>
+                    {
+                        i--;
+                        if (i == 0)
+                        {
+                            ShowWin();
+                        }
+                    };
+                    timer.Start();
+
+                    _environment.StartFireworks = true;
+                    _player.Win = false;
+                }
+
                 // When the game isn't paused, update the timer
                 if (!_ui.GamePaused)
                 {
@@ -829,7 +882,127 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 return Task.CompletedTask;
             });
 
+            _environment.Initialize();
+
             return Task.CompletedTask;
+        }
+
+        private void ShowWin()
+        {
+            var winUI = AdvancedDynamicTexture.CreateFullscreenUI("UI");
+            winUI.idealHeight = 720;
+
+            var rect = new Rectangle("show-win");
+            rect.thickness = 0;
+            rect.background = "black";
+            rect.alpha = 0.4m;
+            rect.width = "0.4";
+            winUI.addControl(rect);
+
+            var stackPanel = new StackPanel("credits");
+            stackPanel.width = "0.4";
+            stackPanel.fontFamily = "Viga";
+            stackPanel.fontSize = "16px";
+            stackPanel.color = "white";
+            winUI.addControl(stackPanel);
+
+            var wincreds = new TextBlock("special");
+            wincreds.resizeToFit = true;
+            wincreds.color = "white";
+            wincreds.text = "Special thanks to the Babylon Team!";
+            wincreds.textWrapping = 1;
+            wincreds.height = "24px";
+            wincreds.width = "100%";
+            wincreds.fontFamily = "Viga";
+            stackPanel.addControl(wincreds);
+
+            // Credits for music & SFX
+            var music = new TextBlock("music", "Music");
+            music.fontSize = "22";
+            music.resizeToFit = true;
+            music.textWrapping = 1;
+
+            var source = new TextBlock(
+                "sources",
+                "Sources: freesound.org, opengameart.org, and itch.io"
+            );
+            source.textWrapping = 1;
+            source.resizeToFit = true;
+
+            var jumpCred = new TextBlock("jumpCred", "jump2 by LloydEvans09 - freesound.org");
+            jumpCred.textWrapping = 1;
+            jumpCred.resizeToFit = true;
+
+            var walkCred = new TextBlock("walkCred", "Concrete 2 by MayaSama @mayasama.itch.io / ig: @mayaragandra");
+            walkCred.textWrapping = 1;
+            walkCred.resizeToFit = true;
+
+            var gameCred = new TextBlock("gameSong", "Christmas synths by 3xBlast - opengameart.org");
+            gameCred.textWrapping = 1;
+            gameCred.resizeToFit = true;
+
+            var pauseCred = new TextBlock("pauseSong", "Music by Matthew Pablo / www.matthewpablo.com - opengameart.org");
+            pauseCred.textWrapping = 1;
+            pauseCred.resizeToFit = true;
+
+            var endCred = new TextBlock("startendSong", "copycat by syncopika - opengameart.org");
+            endCred.textWrapping = 1;
+            endCred.resizeToFit = true;
+
+            var loseCred = new TextBlock("loseSong", "Eye of the Storm by Joth - opengameart.org");
+            loseCred.textWrapping = 1;
+            loseCred.resizeToFit = true;
+
+            var fireworksSfx = new TextBlock("fireworks", "rubberduck - opengameart.org");
+            fireworksSfx.textWrapping = 1;
+            fireworksSfx.resizeToFit = true;
+
+            var dashCred = new TextBlock("dashCred", "Woosh Noise 1 by potentjello - freesound.org");
+            dashCred.textWrapping = 1;
+            dashCred.resizeToFit = true;
+
+            //  quit, sparkwarning, reset
+            var sfxCred = new TextBlock("sfxCred", "200 Free SFX - https://kronbits.itch.io/freesfx");
+            sfxCred.textWrapping = 1;
+            sfxCred.resizeToFit = true;
+
+            // lighting lantern, sparkreset
+            var sfxCred2 = new TextBlock("sfxCred2", "sound pack by wobbleboxx.com - opengameart.org");
+            sfxCred2.textWrapping = 1;
+            sfxCred2.resizeToFit = true;
+
+            var selectionSfxCred = new TextBlock("select", "8bit menu select by Fupi - opengameart.org");
+            selectionSfxCred.textWrapping = 1;
+            selectionSfxCred.resizeToFit = true;
+
+            stackPanel.addControl(music);
+            stackPanel.addControl(source);
+            stackPanel.addControl(jumpCred);
+            stackPanel.addControl(walkCred);
+            stackPanel.addControl(gameCred);
+            stackPanel.addControl(pauseCred);
+            stackPanel.addControl(endCred);
+            stackPanel.addControl(loseCred);
+            stackPanel.addControl(fireworksSfx);
+            stackPanel.addControl(dashCred);
+            stackPanel.addControl(sfxCred);
+            stackPanel.addControl(sfxCred2);
+            stackPanel.addControl(selectionSfxCred);
+
+            var mainMenu = Button.CreateSimpleButton("mainmenu", "RETURN");
+            mainMenu.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+            mainMenu.fontFamily = "Viga";
+            mainMenu.width = "0.2";
+            mainMenu.height = "40px";
+            mainMenu.color = "white";
+            winUI.addControl(mainMenu);
+
+            mainMenu.onPointerDownObservable.add((_, __) =>
+            {
+                _ui.Transition = true;
+
+                return Task.CompletedTask;
+            });
         }
     }
 }

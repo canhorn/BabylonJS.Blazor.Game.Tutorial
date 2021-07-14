@@ -10,6 +10,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private readonly Scene _scene;
         private readonly List<Lantern> _lanternObjs;
         private readonly PBRMetallicRoughnessMaterial _lightMaterial;
+        private readonly List<Firework> _fireworksObjects;
+
+        public bool StartFireworks { get; set; }
 
         public GameEnvironment(
             Scene scene
@@ -35,6 +38,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 0.6235294117647059m
             );
             _lightMaterial = lightMaterial;
+
+            _fireworksObjects = new List<Firework>();
         }
 
         public async Task Load()
@@ -126,6 +131,39 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             assets.Lantern.dispose();
             assets.AnimationGroup.dispose();
+
+            // -- FIREWORKS --
+            for (int i = 0; i < 5; i++)
+            {
+                _fireworksObjects.Add(
+                    new Firework(
+                        _scene,
+                        i
+                    )
+                );
+            }
+            // Before the scene render
+            // Check to see if the fireworks have started
+            // If they have, trigger the fireworks sequence
+            _scene.onBeforeRenderObservable.add((_, __) =>
+            {
+                foreach (var firework in _fireworksObjects)
+                {
+                    if (StartFireworks)
+                    {
+                        firework.Start();
+                    }
+                }
+                return Task.CompletedTask;
+            });
+        }
+
+        public void Initialize()
+        {
+            foreach (var firework in _fireworksObjects)
+            {
+                firework.Initialize();
+            }
         }
 
         private async Task<EnvSettingAsset> LoadAsset()

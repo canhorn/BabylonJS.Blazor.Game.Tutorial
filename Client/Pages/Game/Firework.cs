@@ -2,9 +2,6 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Threading.Tasks;
-    using System.Timers;
     using BABYLON;
 
     public class Firework
@@ -21,6 +18,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private List<ParticleSystem> _explisionParticles;
         private decimal _startingHeight;
         private decimal _startingDelay;
+
+        //sounds
+        private Sound _explosionSfx;
+        private Sound _rocketSfx;
 
         public Firework(
             Scene scene,
@@ -108,6 +109,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _delay = ((decimal)Random.Shared.NextDouble() * index + 1) * 60;
             _startingHeight = sphere.position.y;
             _startingDelay = _delay;
+
+            LoadSounds();
         }
 
         public void Initialize()
@@ -245,6 +248,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     && !_exploded
                 )
                 {
+                    // -- SOUNDS --
+                    _explosionSfx.play();
                     // Transition to the explosion particle system
                     // Do not explode again
                     _exploded = !_exploded;
@@ -271,6 +276,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 if (_delay <= 0)
                 {
                     _started = true;
+                    // -- SOUNDS --
+                    _rocketSfx.play();
                     //start particle system
                     _rocket.start();
                 }
@@ -279,6 +286,23 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     _delay--;
                 }
             }
+        }
+
+        private void LoadSounds()
+        {
+            _rocketSfx = new Sound(
+                "selection",
+                "./sounds/fw_05.wav",
+                _scene
+            );
+            _rocketSfx.setVolume(0.5m);
+
+            _explosionSfx = new Sound(
+                "selection",
+                "./sounds/fw_03.wav",
+                _scene
+            );
+            _explosionSfx.setVolume(0.5m);
         }
     }
 }

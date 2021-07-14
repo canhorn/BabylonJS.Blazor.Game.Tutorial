@@ -66,6 +66,18 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         public ParticleSystem Sparkler { get; private set; }
         public bool SparkLit { get; internal set; }
         public bool SparkReset { get; internal set; }
+        // Observables
+        //public Observable<CachedEntity> OnRun { get; set; } = new Observable<CachedEntity>();
+
+        public event EventHandler<bool> OnRun;
+
+        // sfx
+        public Sound LightSfx { get; set; }
+        public Sound SparkResetSfx { get; set; }
+        private Sound _resetSfx;
+        private Sound _walkingSfx;
+        private Sound _jumpingSfx;
+        private Sound _dashingSfx;
 
         public Player(
             GameAssets assets,
@@ -75,6 +87,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         ) : base("player", scene, true)
         {
             _scene = scene;
+
+            // Setup Sounds
+            LoadSounds(scene);
+
+            // Setup Camera
             SetupPlayerCamera();
 
             Mesh = assets.Mesh;
@@ -129,6 +146,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     {
                         // need to use copy or else they will be both pointing at the same thing & update together
                         Mesh.position.copyFrom(_lastGroundPosition);
+                        // -- SOUNDS --
+                        _resetSfx.play();
                         return Task.CompletedTask;
                     })
                 )
@@ -140,6 +159,22 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             CreateSparkles();
             SetupAnimations();
             shadowGenerator.addShadowCaster(Mesh);
+
+            // -- SOUNDS --
+            OnRun += (_, play) =>
+            {
+                if (play && !_walkingSfx.isPlaying)
+                {
+                    _walkingSfx.play();
+                }
+                else if (!play && _walkingSfx.isPlaying)
+                {
+                    _walkingSfx.stop();
+                    // Make sure that walkingsfx.stop is called only once
+                    _walkingSfx.isPlaying = false;
+                }
+
+            };
 
             _input = input;
         }
@@ -183,6 +218,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             )
             {
                 _currentAnimation = _run;
+                OnRun.Invoke(null, true);
             }
             else if (_jumped && !_isFalling && !_dashPressed)
             {
@@ -191,6 +227,12 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             else if (!_isFalling && _grounded)
             {
                 _currentAnimation = _idle;
+                if (_scene.getSoundByName(
+                    "walking"
+                ).isPlaying)
+                {
+                    OnRun.Invoke(null, false);
+                }
             }
             else if (_isFalling)
             {
@@ -230,6 +272,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
                 // Animations
                 _currentAnimation = _dash;
+                _dashingSfx.play();
             }
 
             var dashFactor = 1.0m;
@@ -476,6 +519,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 // Jumping and Falling animation flags
                 _jumped = true;
                 _isFalling = false;
+                _jumpingSfx.play();
             }
         }
 
@@ -678,6 +722,52 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             particleSystem.start();
 
             Sparkler = particleSystem;
+        }
+
+        private void LoadSounds(
+            Scene scene
+        )
+        {
+            LightSfx = new Sound(
+                "light",
+                "./sounds/Rise03.mp3",
+                scene
+            );
+
+            SparkResetSfx = new Sound(
+                "sparkReset",
+                "./sounds/Rise04.mp3",
+                scene
+            );
+
+            _jumpingSfx = new Sound(
+                "jumping",
+                "./sounds/187024__lloydevans09__jump2.wav",
+                scene
+            );
+            _jumpingSfx.setVolume(0.25m);
+
+            _dashingSfx = new Sound(
+                "dashing",
+                "./sounds/194081__potentjello__woosh-noise-1.wav",
+                scene
+            );
+
+            _walkingSfx = new Sound(
+                "walking",
+                "./sounds/Concrete 2.wav",
+                scene
+            );
+            _walkingSfx.setVolume(0.2m);
+            _walkingSfx.setPlaybackRate(0.6m);
+            _walkingSfx.loop = true;
+
+            _resetSfx = new Sound(
+                "reset",
+                "./sounds/Retro Magic Protection 25.wav",
+                scene
+            );
+            _resetSfx.setVolume(0.25m);
         }
     }
 }

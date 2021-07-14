@@ -26,6 +26,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private PlayerInput _input;
         private Hud _ui;
 
+        // Sounds
+        public Sound Game { get; set; }
+        public Sound End { get; set; }
+
         public DebugLayer DebugLayer => _scene.debugLayer;
 
         public GameApp(
@@ -125,6 +129,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
             _gameScene = scene;
 
+            // -- SOUNDS --
+            LoadSounds(scene);
+
             // Load Character Assets
             _assets = await LoadCharacterAssets(scene);
 
@@ -132,7 +139,26 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             var environment = new GameEnvironment(scene);
             _environment = environment;
             await _environment.Load();
+        }
 
+        // Load sounds for the game scene
+        private void LoadSounds(Scene scene)
+        {
+            // -- SOUNDS --
+            Game = new Sound(
+                "gameSong",
+                "./sounds/Christmassynths.wav",
+                scene
+            );
+            Game.loop = true;
+            Game.setVolume(0.1m);
+
+            End = new Sound(
+                "endSong",
+                "./sounds/copycat(revised).mp3",
+                scene
+            );
+            End.setVolume(0.25m);
         }
 
         private async Task<GameAssets> LoadCharacterAssets(
@@ -217,6 +243,23 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             camera.setTarget(Vector3.Zero());
             camera.attachControl(true);
 
+            // -- SOUNDS --
+            var start = new Sound(
+                "startSong",
+                "./sounds/copycat(revised).mp3",
+                scene
+            );
+            start.setVolume(0.25m);
+            start.loop = true;
+            start.autoplay = true;
+
+            var sfx = new Sound(
+                "selection",
+                "./sounds/vgmenuselect.wav",
+                scene
+            );
+
+            // -- GUI --
             var guiMenu = AdvancedDynamicTexture.CreateFullscreenUI(
                 name: "UI",
                 scene: scene
@@ -239,6 +282,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             {
                 await GoToCutScene();
                 scene.detachControl();
+
+                sfx.play();
             });
 
             await scene.whenReadyAsync();
@@ -680,6 +725,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
             // We use this to fix the ActionManager
             _canvas.ResetControl();
+
+            // -- SOUNDS --
+            Game.play();
         }
 
         private async Task GoToLose()
@@ -712,6 +760,22 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             camera.setTarget(Vector3.Zero());
             camera.attachControl(true);
 
+            // -- SOUNDS --
+            var start = new Sound(
+                "startSong",
+                "./sounds/Eye of the Storm.mp3",
+                scene
+            );
+            start.setVolume(0.25m);
+            start.loop = true;
+            start.autoplay = true;
+
+            var sfx = new Sound(
+                "selection",
+                "./sounds/vgmenuselect.wav",
+                scene
+            );
+
             // GUI Setup
             var guiMenu = AdvancedDynamicTexture.CreateFullscreenUI(
                 name: "UI",
@@ -728,6 +792,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             mainButton.onPointerUpObservable.add(async (_, __) =>
             {
                 await GoToStart();
+
+                sfx.play();
             });
 
             // Scene Finished Loading
@@ -866,6 +932,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
         private void ShowWin()
         {
+            // Stop game sound and play end song
+            Game.dispose();
+            End.play();
+
             var winUI = AdvancedDynamicTexture.CreateFullscreenUI("UI");
             winUI.idealHeight = 720;
 
@@ -977,6 +1047,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             mainMenu.onPointerDownObservable.add((_, __) =>
             {
                 _ui.Transition = true;
+                _ui.QuitSfx.play();
 
                 return Task.CompletedTask;
             });

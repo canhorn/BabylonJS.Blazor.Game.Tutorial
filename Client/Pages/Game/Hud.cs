@@ -5,6 +5,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
     using System.Timers;
     using BABYLON;
     using BABYLON.GUI;
+    using BabylonJS.Blazor.Game.Tutorial.Client.BabylonJSExtensions;
 
     public class Hud
     {
@@ -51,6 +52,12 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         // UI Elements
         public Button PauseButton { get; private set; }
         public decimal FadeLevel { get; set; }
+
+        // Sounds
+        public Sound QuitSfx { get; set; }
+        private Sound _sfx;
+        private Sound _pause;
+        private Sound _sparkWarningSfx;
 
         public Hud(
             Scene scene
@@ -167,6 +174,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             CreatePauseMenu();
             CreateControlsMenu();
+            LoadSounds(scene);
 
             _timer = new Timer(2000);
             _timer.Stop();
@@ -193,12 +201,24 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 {
                     _sparklerLife.cellId++;
                 }
+                if (_sparklerLife.cellId == 9)
+                {
+                    _sparkWarningSfx.play();
+                }
 
                 if (_sparklerLife.cellId == 10)
                 {
                     StopSpark = true;
                     _timer.Stop();
+
+                    // sfx
+                    _sparkWarningSfx.stop();
                 }
+            }
+            else
+            {
+                // if the game is paused, also pause the warning SFX
+                _sparkWarningSfx.pause();
             }
         }
 
@@ -292,6 +312,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             _sparklerLife.cellId = 0;
             _spark.cellId = 0;
 
+            // -- SOUNDS --
+            _sparkWarningSfx.stop();
+
             if (sparkler is not null)
             {
                 sparkler.start();
@@ -376,6 +399,17 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 GamePaused = false;
                 _startTime = DateTime.Now;
 
+                // -- SOUNDS -- 
+                _scene.getSoundByName("gameSong").play();
+                _pause.stop();
+
+                if (_sparkWarningSfx.isPaused)
+                {
+                    _sparkWarningSfx.play();
+                }
+                // Play transition sound
+                _sfx.play();
+
                 return Task.CompletedTask;
             });
 
@@ -399,6 +433,9 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 //open controls screen
                 _controls.isVisible = true;
                 _pauseMenu.isVisible = false;
+
+                // Play transition Sound
+                _sfx.play();
 
                 return Task.CompletedTask;
             });
@@ -446,6 +483,13 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     return Task.CompletedTask;
                 });
                 Transition = true;
+
+                // -- SOUNDS --
+                QuitSfx.play();
+                if (_pause.isPlaying)
+                {
+                    _pause.stop();
+                }
 
                 return Task.CompletedTask;
             });
@@ -498,8 +542,42 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 _pauseMenu.isVisible = true;
                 _controls.isVisible = false;
 
+                // play transition sound
+                _sfx.play();
+
                 return Task.CompletedTask;
             });
+        }
+
+        private void LoadSounds(Scene scene)
+        {
+            _pause = new Sound(
+                "pauseSong",
+                "./sounds/Snowland.wav",
+                scene
+            );
+            _pause.setVolume(0.2m);
+
+            _sfx = new Sound(
+                "selection",
+                "./sounds/vgmenuselect.wav",
+                scene
+            );
+
+            QuitSfx = new Sound(
+                "quit",
+                "./sounds/Retro Event UI 13.wav",
+                scene
+            );
+
+            _sparkWarningSfx = new Sound(
+                "sparkWarning",
+                "./sounds/Retro Water Drop 01.wav",
+                scene
+            );
+            _sparkWarningSfx.setVolume(0.5m);
+            _sparkWarningSfx.loop = true;
+            _sparkWarningSfx.setPlaybackRate(0.6m);
         }
     }
 }

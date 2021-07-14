@@ -76,6 +76,20 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.BabylonJSExtensions
                 }
             );
         }
+
+        public static Sound getSoundByName(
+            this Scene scene,
+            string name
+        )
+        {
+            return EventHorizonBlazorInterop.FuncClass(
+                entity => new Sound() { ___guid = entity.___guid },
+                new object[]
+                {
+                    new string[] { scene.___guid, "getSoundByName" }, name
+                }
+            );
+        }
     }
 
     public static class ParticleSystemExtensions

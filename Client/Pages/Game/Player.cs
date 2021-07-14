@@ -250,10 +250,10 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             // --MOVEMENTS BASED ON CAMERA--
             var foward = _cameraRoot.forward();
             var right = _cameraRoot.right();
-            var correctedVertical = foward.scale(_vertical);
-            var correctedHorizontal = right.scale(_horizontal);
+            var correctedVertical = foward.scaleInPlace(_vertical);
+            var correctedHorizontal = right.scaleInPlace(_horizontal);
 
-            correctedHorizontal = correctedHorizontal.add(correctedVertical);
+            correctedHorizontal = correctedHorizontal.addInPlace(correctedVertical);
             var move = correctedHorizontal;
 
             _moveDirection = new Vector3(move.normalize().x * dashFactor, 0, move.normalize().z * dashFactor);
@@ -272,7 +272,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 _inputAmount = inputMag;
             }
 
-            _moveDirection = _moveDirection.scale(_inputAmount * PLAYER_SPEED);
+            _moveDirection = _moveDirection.scaleInPlace(_inputAmount * PLAYER_SPEED);
 
             // Rotations
             var input = new Vector3(_input.HorizontalAxis, 0, _input.VerticalAxis);
@@ -294,7 +294,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         {
             var raycastFloorPosition = new Vector3(
                 Mesh.position.x + offsetX,
-                Mesh.position.y - PLAYER_OFFSET,
+                Mesh.position.y + PLAYER_OFFSET,
                 Mesh.position.z + offsetZ
             );
             var ray = new Ray(
@@ -332,34 +332,45 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             return true;
         }
-
         private bool CheckSlope()
         {
-            if (SlopeRaycastFrom(
+            var slop1 = SlopeRaycastFrom(
                 Mesh.position.x,
                 Mesh.position.z + 0.25m
-            ).hit)
+            );
+            if (slop1.hit
+                && slop1.pickedMesh.name.Contains("stair")
+            )
             {
                 return true;
             }
-            if (SlopeRaycastFrom(
+            var slop2 = SlopeRaycastFrom(
                 Mesh.position.x,
                 Mesh.position.z - 0.25m
-            ).hit)
+            );
+            if (slop2.hit
+                && slop2.pickedMesh.name.Contains("stair")
+            )
             {
                 return true;
             }
-            if (SlopeRaycastFrom(
+            var slop3 = SlopeRaycastFrom(
                 Mesh.position.x + 0.25m,
                 Mesh.position.z
-            ).hit)
+            );
+            if (slop3.hit
+                && slop3.pickedMesh.name.Contains("stair")
+            )
             {
                 return true;
             }
-            if (SlopeRaycastFrom(
+            var slop4 = SlopeRaycastFrom(
                 Mesh.position.x - 0.25m,
                 Mesh.position.z
-            ).hit)
+            );
+            if (slop4.hit
+                && slop4.pickedMesh.name.Contains("stair")
+            )
             {
                 return true;
             }
@@ -440,7 +451,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             {
                 _gravity.y = 0;
                 _grounded = true;
-                _lastGroundPosition.copyFrom(Mesh.position);
+                _lastGroundPosition = _lastGroundPosition.copyFrom(Mesh.position);
 
                 // Jumping
                 _jumpCount = 1;
@@ -551,7 +562,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                 }
             }
 
-            var centerPlayer = Mesh.position.y + PLAYER_OFFSET;
+            var centerPlayer = Mesh.position.y + 2;
             _cameraRoot.position = Vector3.Lerp(
                 _cameraRoot.position,
                 new Vector3(

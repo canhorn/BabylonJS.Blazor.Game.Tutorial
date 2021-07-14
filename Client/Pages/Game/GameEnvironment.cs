@@ -122,7 +122,8 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     _scene,
                     assets.Env.getChildTransformNodes(false)
                         .FirstOrDefault(a => a.name == $"lantern {i}")
-                        .getAbsolutePosition()
+                        .getAbsolutePosition(),
+                    animationGroupClone
                 );
                 _lanternObjs.Add(
                     newLantern

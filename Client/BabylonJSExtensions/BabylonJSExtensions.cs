@@ -77,4 +77,19 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.BabylonJSExtensions
             );
         }
     }
+
+    public static class ParticleSystemExtensions
+    {
+        public static void emitterPosition(
+            this ParticleSystem particleSystem,
+            Vector3 emitter
+        )
+        {
+            EventHorizonBlazorInterop.Set(
+                particleSystem.___guid,
+                "emitter",
+                emitter
+            );
+        }
+    }
 }

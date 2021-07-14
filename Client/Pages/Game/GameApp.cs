@@ -125,13 +125,14 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
             _gameScene = scene;
 
+            // Load Character Assets
+            _assets = await LoadCharacterAssets(scene);
+
             // Load Assets
             var environment = new GameEnvironment(scene);
             _environment = environment;
             await _environment.Load();
 
-            // Load Character Assets
-            _assets = await LoadCharacterAssets(scene);
         }
 
         private async Task<GameAssets> LoadCharacterAssets(
@@ -437,14 +438,6 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
 
             skipBtn.onPointerDownObservable.add((_, __) =>
             {
-                _cutScene.detachControl();
-                //clearInterval(animTimer);
-                //clearInterval(anim2Timer);
-                //clearInterval(dialogueTimer);
-                animationTimer.Dispose();
-                animation2Timer.Dispose();
-                dialogueTimer.Dispose();
-                _engine.displayLoadingUI();
                 canPlay = true;
 
                 return Task.CompletedTask;
@@ -466,6 +459,11 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                     && canPlay
                 )
                 {
+                    _cutScene.detachControl();
+                    animationTimer.Dispose();
+                    animation2Timer.Dispose();
+                    dialogueTimer.Dispose();
+                    _engine.displayLoadingUI();
                     canPlay = false;
                     await GoToGame();
                 }
@@ -648,27 +646,6 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             //dont detect any inputs from this ui while the game is loading
             scene.detachControl();
 
-            //create a simple button -- For Testing
-            var loseBtn = Button.CreateSimpleButton(
-                "lose",
-                "LOSE"
-            );
-            loseBtn.width = "0.2";
-            loseBtn.height = "40px";
-            loseBtn.color = "white";
-            loseBtn.top = "-14px";
-            loseBtn.thickness = 0;
-            loseBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
-            _ui.Root.addControl(loseBtn);
-
-            //this handles interactions with the start button attached to the scene
-            loseBtn.onPointerUpObservable.add(async (_, __) =>
-            {
-                await GoToLose();
-                scene.detachControl(); //observables disabled
-            });
-
-
             // --INPUT--
             _input = new PlayerInput(
                 scene,
@@ -766,7 +743,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         {
             var light = new PointLight(
                 "sparklight",
-                new Vector3(0, 10, 0),
+                new Vector3(0, 0, 0),
                 scene
             )
             {

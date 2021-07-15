@@ -49,6 +49,7 @@ using Microsoft.AspNetCore.StaticFiles;
             provider.Mappings[".fx"] = "application/fx";
             provider.Mappings[".gltf"] = "model/vnd.gltf+json";
             provider.Mappings[".glb"] = "application/octet-stream";
+            provider.Mappings[".env"] = "application/octet-stream";
             app.UseStaticFiles(new StaticFileOptions()
             {
                 ContentTypeProvider = provider,

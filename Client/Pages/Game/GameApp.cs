@@ -25,6 +25,7 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
         private Player _player;
         private PlayerInput _input;
         private Hud _ui;
+        private bool _transition;
 
         // Sounds
         public Sound Game { get; set; }
@@ -266,6 +267,38 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             );
             guiMenu.idealHeight = 720;
 
+            // Background Image
+            var imageRect = new Rectangle(
+                "titleContainer"
+            );
+            imageRect.width = "0.8";
+            imageRect.thickness = 0;
+            guiMenu.addControl(imageRect);
+
+            var startBackground = new Image(
+                "startbg",
+                "./sprites/start.jpeg"
+            );
+            imageRect.addControl(
+                startBackground
+            );
+
+            var title = new TextBlock(
+                "title",
+                "SUMMER'S FESTIVAL"
+            );
+            title.resizeToFit = true;
+            title.fontFamily = "Ceviche One";
+            title.fontSize = "64px";
+            title.color = "white";
+            title.resizeToFit = true;
+            title.top = "14px";
+            title.width = "0.8";
+            title.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+            imageRect.addControl(
+                title
+            );
+
             var startButton = Button.CreateSimpleButton(
                 "start",
                 "PLAY"
@@ -276,14 +309,64 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             startButton.top = "-14px";
             startButton.thickness = 0;
             startButton.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
-            guiMenu.addControl(startButton);
+            imageRect.addControl(
+                startButton
+            );
 
+            // Set up transition effect
+            // Modified version of https://www.babylonjs-playground.com/#2FGYE8#0
+            Effect.RegisterShader(
+                "fade",
+                string.Join(
+                    string.Empty,
+                    "precision highp float;",
+                    "varying vec2 vUV;",
+                    "uniform sampler2D textureSampler; ",
+                    "uniform float fadeLevel; ",
+                    "void main(void){",
+                        "vec4 baseColor = texture2D(textureSampler, vUV) * fadeLevel;",
+                        "baseColor.a = 1.0;",
+                        "gl_FragColor = baseColor;",
+                    "}"
+                )
+            );
+
+            var fadeLevel = 1.0m;
+            _transition = false;
+            scene.registerBeforeRender(new ActionCallback(async () =>
+            {
+                if (_transition)
+                {
+                    fadeLevel -= 0.05m;
+                    if (fadeLevel <= 0)
+                    {
+                        _transition = false;
+                        await GoToCutScene();
+                    }
+                }
+            }));
+
+            // This handles interactions with the start button attached to the scene 
             startButton.onPointerDownObservable.add(async (_, __) =>
             {
-                await GoToCutScene();
-                scene.detachControl();
+                // Fade screen
+                var postProcess = new PostProcess(
+                    "Fade",
+                    "fade",
+                    1.0m,
+                    camera,
+                    new[] { "fadeLevel" }
+                );
+                postProcess.onApplyObservable.add((effect, _) =>
+                {
+                    effect.setFloat("fadeLevel", fadeLevel);
+                    return Task.CompletedTask;
+                });
+                _transition = true;
 
                 sfx.play();
+
+                scene.detachControl();
             });
 
             await scene.whenReadyAsync();
@@ -691,6 +774,16 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             //dont detect any inputs from this ui while the game is loading
             scene.detachControl();
 
+            // IBL (image based lighting) - to give scene an ambient light
+            var envHdri = CubeTexture.CreateFromPrefilteredData(
+                "./textures/envtext.env",
+                scene
+            );
+            envHdri.name = "env";
+            envHdri.gammaSpace = false;
+            scene.environmentTexture = envHdri;
+            scene.environmentIntensity = 0.04m;
+
             // --INPUT--
             _input = new PlayerInput(
                 scene,
@@ -791,10 +884,45 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             guiMenu.addControl(mainButton);
             mainButton.onPointerUpObservable.add(async (_, __) =>
             {
-                await GoToStart();
+                scene.detachControl();
+                guiMenu.dispose();
 
+                _transition = true;
                 sfx.play();
             });
+
+            // Set up transition effect
+            // Modified version of https://www.babylonjs-playground.com/#2FGYE8#0
+            Effect.RegisterShader("fade",
+                string.Join(
+                    string.Empty,
+                    "precision highp float;",
+                    "varying vec2 vUV;",
+                    "uniform sampler2D textureSampler; ",
+                    "uniform float fadeLevel; ",
+                    "void main(void){",
+                        "vec4 baseColor = texture2D(textureSampler, vUV) * fadeLevel;",
+                        "baseColor.a = 1.0;",
+                        "gl_FragColor = baseColor;",
+                    "}"
+                )
+            );
+
+            var fadeLevel = 1.0;
+            _transition = false;
+            scene.registerBeforeRender(new ActionCallback(async () =>
+            {
+                if (_transition)
+                {
+                    fadeLevel -= .05;
+                    if (fadeLevel <= 0)
+                    {
+
+                        await GoToStart();
+                        _transition = false;
+                    }
+                }
+            }));
 
             // Scene Finished Loading
             await scene.whenReadyAsync();

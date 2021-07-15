@@ -165,6 +165,19 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
             {
                 firework.Initialize();
             }
+
+            // Glow layer
+            var glow = new GlowLayer(
+                "glow",
+                _scene
+            );
+            glow.intensity = 0.4m;
+            foreach (var lantern in _lanternObjs)
+            {
+                glow.addIncludedOnlyMesh(
+                    lantern.Mesh
+                );
+            }
         }
 
         private async Task<EnvSettingAsset> LoadAsset()
@@ -268,12 +281,18 @@ namespace BabylonJS.Blazor.Game.Tutorial.Client.Pages.Game
                                     // reset the Sparkler 
                                     player.SparkReset = true;
                                     player.SparkLit = true;
+
+                                    //SFX
+                                    player.LightSfx.play();
                                 }
                                 // If the lantern is lit already, reset the Sparkler
                                 else if (lantern.IsLit)
                                 {
                                     player.SparkReset = true;
                                     player.SparkLit = true;
+
+                                    //SFX
+                                    player.SparkResetSfx.play();
                                 }
 
                                 return Task.CompletedTask;

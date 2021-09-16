@@ -244,6 +244,7 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 
+app
 dist/
 libraries/
 appsettings.*.json

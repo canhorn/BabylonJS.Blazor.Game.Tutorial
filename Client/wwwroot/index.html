@@ -36,6 +36,16 @@
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/EventHorizon.Blazor.Interop/interop-bridge.js"></script>
+
+    <script>
+        // Disable Arrow Key event propagation up through IFrames
+        document.addEventListener("keydown", function(evnt) {
+            if([37,38,39,40].indexOf(evnt.keyCode) > -1){
+                evnt.preventDefault();
+                evnt.stopPropagation();
+            }
+        });
+    </script>
 </body>
 
 </html>

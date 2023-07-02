@@ -8,9 +8,14 @@ This show cases Blazor Wasm being used with a relativity complicated JavaScript 
 
 This is a project I, Cody Merritt Anhorn, personally created to help with the generation of the .NET/C# proxy layer. This proxy layer creates an interop layer to the underlying JavaScript having an almost exact API that would be used if the game was built in JavaScript/TypeScript.
 
+[Original Game](https://babylonjs.github.io/SummerFestival/)
+
 ## Commands 
 
 ~~~ bash
+# Setup .NET Http SSL
+dotnet dev-certs https --trust
+
 # Install EHZ Generator Tool
 dotnet tool install -g EventHorizon.Blazor.TypeScript.Interop.Tool
 
